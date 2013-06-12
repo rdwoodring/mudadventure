@@ -13,7 +13,7 @@ namespace MUDAdventure
     {
         private TcpListener tcpListener;
         private Thread listenThread;
-        private List<Player> players = new List<Player>();
+        public ObservableCollection<Player> players = new ObservableCollection<Player>();
 
         public ObservableCollection<string> chatQueue = new ObservableCollection<string>();
 
