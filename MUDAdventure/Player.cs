@@ -11,6 +11,8 @@ namespace MUDAdventure
 {
     class Player
     {
+        public event EventHandler<PlayerConnectedEventArgs> PlayerConnected;
+
         private bool connected;
         private string name;
         private Server myServer;
@@ -33,15 +35,30 @@ namespace MUDAdventure
         public void initialize(object e)
         {
             this.clientStream = tcpClient.GetStream();
-            this.encoder = new ASCIIEncoding();
-            this.connected = true;
-
-            this.myServer.chatQueue.CollectionChanged += new NotifyCollectionChangedEventHandler(chatQueueUpdated);
-            this.myServer.players.CollectionChanged += new NotifyCollectionChangedEventHandler(playerListUpdated);
-
+            this.encoder = new ASCIIEncoding();            
+            
             writeToClient("Welcome to my MUD\r\nWhat is your name, traveller? ");
 
-            readFromClient();
+            string tempName = readFromClient();
+            if (tempName != null && tempName != "")
+            {
+                this.name = tempName;
+                this.connected = true;
+                this.OnPlayerConnected(new PlayerConnectedEventArgs(this.name));
+
+                this.myServer.players.CollectionChanged += playerListUpdated;
+            }
+
+        }
+
+        protected virtual void OnPlayerConnected(PlayerConnectedEventArgs e)
+        {
+            EventHandler<PlayerConnectedEventArgs> handler = PlayerConnected;
+
+            if (handler != null)
+            {
+                handler(this, e);
+            }
         }
 
         private void writeToClient(string message)
@@ -57,7 +74,7 @@ namespace MUDAdventure
             }
         }
 
-        private void readFromClient()
+        private string readFromClient()
         {
             byte[] message = new byte[4096];
             int bytesRead;
@@ -79,7 +96,8 @@ namespace MUDAdventure
                 }
             }
 
-            Console.WriteLine(finalMessage.TrimEnd('\r','\n') + " has connected.");
+            //Console.WriteLine(finalMessage.TrimEnd('\r','\n') + " has connected.");
+            return finalMessage.TrimEnd('\r', '\n');
         }
 
         /**************************************************************************/
@@ -87,27 +105,13 @@ namespace MUDAdventure
         /**************************************************************************/
 
 
-        private void chatQueueUpdated(object sender, NotifyCollectionChangedEventArgs e)
-        {
-            //TODO: add code to handle an update to the chat queue
-        }
-
         private void playerListUpdated(object sender, NotifyCollectionChangedEventArgs e)
         {
             if (e.Action == NotifyCollectionChangedAction.Add)
             {
-                //List<Player> players = new List<Player>();
-
                 foreach (Player player in e.NewItems)
                 {
-                    writeToClient(player.getName() + " has connected.");
-                }
-            }
-            else if (e.Action == NotifyCollectionChangedAction.Replace)
-            {
-                foreach (Player player in e.NewItems)
-                {
-                    writeToClient(player.getName() + " has connected.");
+                    player.PlayerConnected += HandlePlayerConnected;
                 }
             }
             else if (e.Action == NotifyCollectionChangedAction.Remove)
@@ -117,6 +121,11 @@ namespace MUDAdventure
                     writeToClient(player.getName() + " has disconnected.");
                 }
             }
+        }
+
+        private void HandlePlayerConnected(object sender, PlayerConnectedEventArgs e)
+        {
+            writeToClient(e.Name + " has connected.");
         }
     }
 }

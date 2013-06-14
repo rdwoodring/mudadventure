@@ -13,9 +13,7 @@ namespace MUDAdventure
     {
         private TcpListener tcpListener;
         private Thread listenThread;
-        public ObservableCollection<Player> players = new ObservableCollection<Player>();
-
-        public ObservableCollection<string> chatQueue = new ObservableCollection<string>();
+        public ObservableCollection<Player> players = new ObservableCollection<Player>();        
 
         public Server()
         {
@@ -37,8 +35,15 @@ namespace MUDAdventure
                 Thread clientThread = new Thread(new ParameterizedThreadStart(player.initialize));
                 clientThread.Start();
 
+                player.PlayerConnected += HandlePlayerConnected;
+
                 players.Add(player);
             }
+        }
+
+        private void HandlePlayerConnected(object sender, PlayerConnectedEventArgs e)
+        {
+            Console.WriteLine(e.Name + " has connected.");
         }
     }
 }
