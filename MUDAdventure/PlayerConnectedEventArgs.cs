@@ -11,13 +11,13 @@ namespace MUDAdventure
 
         public PlayerConnectedEventArgs(string s)
         {
-            name = s;
+            this.name = s;
         }
 
         public string Name
         {
-            get { return name; }
-            set { name = value; }
+            get { return this.name; }
+            set { this.name = value; }
         }
     }
 }
