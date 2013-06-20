@@ -13,6 +13,7 @@ namespace MUDAdventure
     {
         public event EventHandler<PlayerConnectedEventArgs> PlayerConnected;
         public event EventHandler<PlayerMovedEventArgs> PlayerMoved;
+        public event EventHandler<PlayerDisconnectedEventArgs> PlayerDisconnected;
 
         private bool connected;
         private string name;
@@ -21,6 +22,8 @@ namespace MUDAdventure
         NetworkStream clientStream;
         ASCIIEncoding encoder;
         private int x, y;
+
+        private Object playerlock = new Object();
 
         public Player(TcpClient client, Server server)
         {
@@ -47,8 +50,10 @@ namespace MUDAdventure
                 this.name = tempName;
                 this.connected = true;
                 this.OnPlayerConnected(new PlayerConnectedEventArgs(this.name));
-
-                this.myServer.players.CollectionChanged += playerListUpdated;
+                lock (playerlock)
+                {
+                    this.myServer.players.CollectionChanged += playerListUpdated;
+                }
             }
 
             //TODO: replace with loading player's location from DB
@@ -93,13 +98,36 @@ namespace MUDAdventure
 
             this.connected = false;
 
+            //unsubscribe from events
+            lock (playerlock)
+            {
+                this.myServer.players.CollectionChanged -= this.playerListUpdated;
+                foreach (Player player in this.myServer.players)
+                {
+                    player.PlayerMoved -= this.HandlePlayerMoved;
+                    player.PlayerConnected -= this.HandlePlayerConnected;
+                }
+            }
+
             this.clientStream.Close();
             this.tcpClient.Close();
+
+            this.OnPlayerDisconnected(new PlayerDisconnectedEventArgs(this.name));
         }
 
         protected virtual void OnPlayerConnected(PlayerConnectedEventArgs e)
         {
             EventHandler<PlayerConnectedEventArgs> handler = this.PlayerConnected;
+
+            if (handler != null)
+            {
+                handler(this, e);
+            }
+        }
+
+        protected virtual void OnPlayerDisconnected(PlayerDisconnectedEventArgs e)
+        {
+            EventHandler<PlayerDisconnectedEventArgs> handler = this.PlayerDisconnected;
 
             if (handler != null)
             {
@@ -211,12 +239,13 @@ namespace MUDAdventure
             //write to the client to let them know someone else has connected
             this.writeToClient(e.Name + " has connected.");
 
-            //subscribe to all the other player's events the player will need to know about
-            foreach (Player player in this.myServer.players)
+            lock (playerlock)
             {
-                if (player.getName() == e.Name)
+                //subscribe to all the other player's events the player will need to know about
+                if (this.myServer.players.Contains((Player)sender))
                 {
-                    player.PlayerMoved += HandlePlayerMoved;
+                    this.myServer.players[this.myServer.players.IndexOf((Player)sender)].PlayerMoved += this.HandlePlayerMoved;
+                    this.myServer.players[this.myServer.players.IndexOf((Player)sender)].PlayerDisconnected += this.HandlePlayerDisconnected;
                 }
             }
         }
@@ -225,12 +254,28 @@ namespace MUDAdventure
         {
             if( e.X == this.x && e.Y == this.y)
             {
-                writeToClient(e.Name + " has entered the room.");
+                this.writeToClient(e.Name + " enters the room.");
             }
 
+            //TODO: add which direction player left in
             if (e.OldX == this.x && e.OldY == this.y)
             {
-                writeToClient(e.Name + " has left the room.");
+                this.writeToClient(e.Name + " heads " + e.Direction + ".");
+            }
+        }
+
+        private void HandlePlayerDisconnected(object sender, PlayerDisconnectedEventArgs e)
+        {
+            this.writeToClient(e.Name + " has disconnected.");
+
+            lock (playerlock)
+            {
+                if (this.myServer.players.Contains((Player)sender))
+                {
+                    this.myServer.players[this.myServer.players.IndexOf((Player)sender)].PlayerConnected -= this.HandlePlayerConnected;
+                    this.myServer.players[this.myServer.players.IndexOf((Player)sender)].PlayerMoved -= this.HandlePlayerMoved;
+                    this.myServer.players[this.myServer.players.IndexOf((Player)sender)].PlayerDisconnected -= this.HandlePlayerDisconnected;
+                }
             }
         }
     }

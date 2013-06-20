@@ -13,7 +13,8 @@ namespace MUDAdventure
     {
         private TcpListener tcpListener;
         private Thread listenThread;
-        public ObservableCollection<Player> players = new ObservableCollection<Player>();        
+        public ObservableCollection<Player> players = new ObservableCollection<Player>();
+        private static  Object playerlock = new Object();
 
         public Server()
         {
@@ -36,14 +37,22 @@ namespace MUDAdventure
                 clientThread.Start();
 
                 player.PlayerConnected += HandlePlayerConnected;
-
-                players.Add(player);
+                player.PlayerDisconnected += HandlePlayerDisconnected;
+                lock (playerlock)
+                {
+                    players.Add(player);
+                }
             }
         }
 
         private void HandlePlayerConnected(object sender, PlayerConnectedEventArgs e)
         {
             Console.WriteLine(e.Name + " has connected.");
+        }
+
+        private void HandlePlayerDisconnected(object sender, PlayerDisconnectedEventArgs e)
+        {
+            Console.WriteLine(e.Name + " has disconnected.");
         }
     }
 }

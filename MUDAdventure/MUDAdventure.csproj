@@ -45,6 +45,7 @@
   <ItemGroup>
     <Compile Include="Player.cs" />
     <Compile Include="PlayerConnectedEventArgs.cs" />
+    <Compile Include="PlayerDisconnectedEventArgs.cs" />
     <Compile Include="PlayerMovedEventArgs.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
