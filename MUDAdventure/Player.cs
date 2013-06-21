@@ -17,19 +17,22 @@ namespace MUDAdventure
 
         private bool connected;
         private string name;
-        private Server myServer;
         private TcpClient tcpClient;
         NetworkStream clientStream;
         ASCIIEncoding encoder;
-        private int x, y;
+        private int x, y, z;
+        private ObservableCollection<Player> players;
+        private Dictionary<string, Room> rooms;
 
         private Object playerlock = new Object();
 
-        public Player(TcpClient client, Server server)
+        public Player(TcpClient client, ref ObservableCollection<Player> playerlist, Dictionary<string, Room> roomlist)
         {
             this.tcpClient = client;
-            this.myServer = server;
             this.name = null;
+            this.players = playerlist;
+
+            this.rooms = roomlist;
         }
 
         public string getName()
@@ -52,13 +55,16 @@ namespace MUDAdventure
                 this.OnPlayerConnected(new PlayerConnectedEventArgs(this.name));
                 lock (playerlock)
                 {
-                    this.myServer.players.CollectionChanged += playerListUpdated;
+                    this.players.CollectionChanged += playerListUpdated;
                 }
             }
 
             //TODO: replace with loading player's location from DB
             this.x = 0;
             this.y = 0;
+            this.z = 0;
+
+            this.Look();
 
             this.InputLoop();
         }
@@ -72,6 +78,28 @@ namespace MUDAdventure
                 input = this.readFromClient();
 
                 this.ParseInput(input);
+            }
+        }
+
+        private void Look()
+        {
+            Room currentRoom;
+            this.rooms.TryGetValue(this.x.ToString() + "," + this.y.ToString() + "," + this.z.ToString(), out currentRoom);
+
+            try
+            {
+                if (currentRoom != null)
+                {
+                    writeToClient(currentRoom.RoomName + "\r\n" + currentRoom.RoomDescription);
+                }
+                else
+                {
+                    writeToClient("An Empty Void\r\nThis room is a total void.  It is bereft of anything because, in fact, it does not exist.  You've reached the edge of the world... and fallen off.");
+                }
+            }
+            catch (NullReferenceException e)
+            {
+                writeToClient(e.ToString());
             }
         }
 
@@ -101,8 +129,8 @@ namespace MUDAdventure
             //unsubscribe from events
             lock (playerlock)
             {
-                this.myServer.players.CollectionChanged -= this.playerListUpdated;
-                foreach (Player player in this.myServer.players)
+                this.players.CollectionChanged -= this.playerListUpdated;
+                foreach (Player player in this.players)
                 {
                     player.PlayerMoved -= this.HandlePlayerMoved;
                     player.PlayerConnected -= this.HandlePlayerConnected;
@@ -198,6 +226,8 @@ namespace MUDAdventure
                     break;
             }
 
+            this.Look();
+
             this.OnPlayerMoved(new PlayerMovedEventArgs(this.x, this.y, oldx, oldy, this.name, dir));
         }
 
@@ -242,10 +272,10 @@ namespace MUDAdventure
             lock (playerlock)
             {
                 //subscribe to all the other player's events the player will need to know about
-                if (this.myServer.players.Contains((Player)sender))
+                if (this.players.Contains((Player)sender))
                 {
-                    this.myServer.players[this.myServer.players.IndexOf((Player)sender)].PlayerMoved += this.HandlePlayerMoved;
-                    this.myServer.players[this.myServer.players.IndexOf((Player)sender)].PlayerDisconnected += this.HandlePlayerDisconnected;
+                    this.players[this.players.IndexOf((Player)sender)].PlayerMoved += this.HandlePlayerMoved;
+                    this.players[this.players.IndexOf((Player)sender)].PlayerDisconnected += this.HandlePlayerDisconnected;
                 }
             }
         }
@@ -270,11 +300,11 @@ namespace MUDAdventure
 
             lock (playerlock)
             {
-                if (this.myServer.players.Contains((Player)sender))
+                if (this.players.Contains((Player)sender))
                 {
-                    this.myServer.players[this.myServer.players.IndexOf((Player)sender)].PlayerConnected -= this.HandlePlayerConnected;
-                    this.myServer.players[this.myServer.players.IndexOf((Player)sender)].PlayerMoved -= this.HandlePlayerMoved;
-                    this.myServer.players[this.myServer.players.IndexOf((Player)sender)].PlayerDisconnected -= this.HandlePlayerDisconnected;
+                    this.players[this.players.IndexOf((Player)sender)].PlayerConnected -= this.HandlePlayerConnected;
+                    this.players[this.players.IndexOf((Player)sender)].PlayerMoved -= this.HandlePlayerMoved;
+                    this.players[this.players.IndexOf((Player)sender)].PlayerDisconnected -= this.HandlePlayerDisconnected;
                 }
             }
         }

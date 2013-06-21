@@ -13,14 +13,22 @@ namespace MUDAdventure
     {
         private TcpListener tcpListener;
         private Thread listenThread;
-        public ObservableCollection<Player> players = new ObservableCollection<Player>();
+        private ObservableCollection<Player> players = new ObservableCollection<Player>();
         private static  Object playerlock = new Object();
+        private Dictionary<string, Room> rooms = new Dictionary<string,Room>();
 
         public Server()
         {
             this.tcpListener = new TcpListener(IPAddress.Parse("0.0.0.0"), 3000);
             this.listenThread = new Thread(new ThreadStart(ListenForClients));
             this.listenThread.Start();
+
+            //TODO: add code for loading rooms from DB
+            //rooms.Add("123", new Room()); etc., etc.
+            Room room = new Room("A Starting Place", "This is the starting room.  It is completely empty.", true, false, true, false, 0, 0, 0);
+            rooms.Add(room.X.ToString() + "," + room.Y.ToString() + "," + room.Z.ToString(), room);
+
+            
         }
 
         private void ListenForClients()
@@ -31,7 +39,7 @@ namespace MUDAdventure
             {
                 TcpClient client = this.tcpListener.AcceptTcpClient();
 
-                Player player = new Player(client, this);                                
+                Player player = new Player(client, ref players, rooms);                      
 
                 Thread clientThread = new Thread(new ParameterizedThreadStart(player.initialize));
                 clientThread.Start();
