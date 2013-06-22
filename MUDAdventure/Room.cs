@@ -55,5 +55,29 @@ namespace MUDAdventure
             get { return this.roomDescription; }
             set { this.roomDescription = value; }
         }
+
+        public bool NorthExit
+        {
+            get { return this.northExit; }
+            set { this.northExit = value; }
+        }
+
+        public bool SouthExit
+        {
+            get { return this.southExit; }
+            set { this.southExit = value; }
+        }
+
+        public bool EastExit
+        {
+            get { return this.eastExit; }
+            set { this.eastExit = value; }
+        }
+
+        public bool WestExit
+        {
+            get { return this.westExit; }
+            set { this.westExit = value; }
+        }
     }
 }

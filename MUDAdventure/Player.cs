@@ -90,7 +90,28 @@ namespace MUDAdventure
             {
                 if (currentRoom != null)
                 {
-                    writeToClient(currentRoom.RoomName + "\r\n" + currentRoom.RoomDescription);
+                    string exits = "";
+                    if (currentRoom.NorthExit)
+                    {
+                        exits += "N ";
+                    }
+
+                    if (currentRoom.EastExit)
+                    {
+                        exits += "E ";
+                    }
+
+                    if (currentRoom.SouthExit)
+                    {
+                        exits += "S ";
+                    }
+
+                    if (currentRoom.WestExit)
+                    {
+                        exits += "W";
+                    }
+
+                    writeToClient(currentRoom.RoomName + "\r\n" + exits + "\r\n" + currentRoom.RoomDescription + "\r\n\r\n");
                 }
                 else
                 {
@@ -108,6 +129,10 @@ namespace MUDAdventure
             if (input.ToLower() == "n" || input.ToLower() == "s" || input.ToLower() == "e" || input.ToLower() == "w")
             {
                 this.Move(input.ToLower());
+            }
+            else if (input.ToLower().Contains("look"))
+            {
+                this.Look();
             }
             else if (input.ToLower() == "exit")
             {
@@ -206,29 +231,64 @@ namespace MUDAdventure
         {
             //TODO: add movement logic here
 
-            int oldx, oldy;
+            int oldx, oldy, oldz;
             oldx = this.x;
             oldy = this.y;
+            oldz = this.z;
 
-            switch (dir)
+            //temporary holder for current room.
+            //TODO: maybe make this a class level variable since it seems to be used repeatedly
+            Room currentRoom;
+
+            //getting current room.
+            this.rooms.TryGetValue(this.x + "," + this.y + "," + this.z, out currentRoom);
+
+            //make sure the room we are in exists and is not null
+            if (currentRoom != null)
             {
-                case "n":
-                    y++;
-                    break;
-                case "s":
-                    y--;
-                    break;
-                case "e":
-                    x++;
-                    break;
-                case "w":
-                    x--;
-                    break;
+                //check the movement direction, and see if an exit is available that way.
+                switch (dir)
+                {
+                    case "n":
+                        if (currentRoom.NorthExit)
+                        {
+                            this.y++;
+                        }
+                        break;
+                    case "s":
+                        if (currentRoom.SouthExit)
+                        {
+                            this.y--;
+                        }
+                        break;
+                    case "e":
+                        if (currentRoom.EastExit)
+                        {
+                            this.x++;
+                        }
+                        break;
+                    case "w":
+                        if (currentRoom.WestExit)
+                        {
+                            this.x--;
+                        }
+                        break;
+                }
+
+                //if we have moved, let's look around the new room automatically and raise the OnPlayerMoved event
+                if (this.x != oldx || this.y != oldy || this.z != oldz)
+                {
+                    this.Look();
+
+                    this.OnPlayerMoved(new PlayerMovedEventArgs(this.x, this.y, oldx, oldy, this.name, dir));
+                }
+                //if we haven't moved, that means there wasn't an available exit in that direction.
+                //let's tell the stupid player with an message
+                else
+                {
+                    writeToClient("You cannot go that direction.");
+                }
             }
-
-            this.Look();
-
-            this.OnPlayerMoved(new PlayerMovedEventArgs(this.x, this.y, oldx, oldy, this.name, dir));
         }
 
         protected virtual void OnPlayerMoved(PlayerMovedEventArgs e)
