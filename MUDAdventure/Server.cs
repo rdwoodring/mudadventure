@@ -14,8 +14,11 @@ namespace MUDAdventure
         private TcpListener tcpListener;
         private Thread listenThread;
         private ObservableCollection<Player> players = new ObservableCollection<Player>();
-        private static  Object playerlock = new Object();
+        private static object playerLock = new object();
+        private static object threadListLock = new object();
         private Dictionary<string, Room> rooms = new Dictionary<string,Room>();
+        private List<NPC> npcs = new List<NPC>();
+        private List<Thread> playerThreadList = new List<Thread>();
 
         public Server()
         {
@@ -27,16 +30,20 @@ namespace MUDAdventure
             //rooms.Add("123", new Room()); etc., etc.
             //for now let's just create some rooms manually for testing purposes.
             Room room = new Room("A Starting Place", "This is the starting room.  It is completely empty.", true, false, true, false, 0, 0, 0);
-            rooms.Add(room.X.ToString() + "," + room.Y.ToString() + "," + room.Z.ToString(), room);
+            this.rooms.Add(room.X.ToString() + "," + room.Y.ToString() + "," + room.Z.ToString(), room);
 
             room = new Room("North of A Starting Place", "Well, you've moved to a room north of the starting room... but it's still completely empty.", false, true, true, false, 0, 1, 0);
-            rooms.Add(room.X.ToString() + "," + room.Y.ToString() + "," + room.Z.ToString(), room);
+            this.rooms.Add(room.X.ToString() + "," + room.Y.ToString() + "," + room.Z.ToString(), room);
 
             room = new Room("Northeast of A Starting Place", "Woohoo!  Just kidding... this room is still completely empty.", false, true, false, true, 1, 1, 0);
-            rooms.Add(room.X.ToString() + "," + room.Y.ToString() + "," + room.Z.ToString(), room);
+            this.rooms.Add(room.X.ToString() + "," + room.Y.ToString() + "," + room.Z.ToString(), room);
 
             room = new Room("East of A Starting Place", "Nothing here.  Move along, move along.", true, false, false, true, 1, 0, 0);
-            rooms.Add(room.X.ToString() + "," + room.Y.ToString() + "," + room.Z.ToString(), room);
+            this.rooms.Add(room.X.ToString() + "," + room.Y.ToString() + "," + room.Z.ToString(), room);
+
+            //TODO: add code for loading npcs from DB
+            NPC npc = new NPC(0, 0, 0, "An NPC", "An NPC is standing here.  It has no form and nothing on.", new List<string> {"NPC"});
+            this.npcs.Add( npc);
         }
 
         private void ListenForClients()
@@ -47,17 +54,22 @@ namespace MUDAdventure
             {
                 TcpClient client = this.tcpListener.AcceptTcpClient();
 
-                Player player = new Player(client, ref players, rooms);                      
+                Player player = new Player(client, ref players, rooms, ref npcs);                      
 
                 Thread clientThread = new Thread(new ParameterizedThreadStart(player.initialize));
                 clientThread.Start();
 
+                lock (playerThreadList)
+                {
+                    this.playerThreadList.Add(clientThread);
+                }
+
                 player.PlayerConnected += HandlePlayerConnected;
                 player.PlayerDisconnected += HandlePlayerDisconnected;
-                lock (playerlock)
+                lock (playerLock)
                 {
-                    players.Add(player);
-                }
+                    this.players.Add(player);
+                }                
             }
         }
 
@@ -69,6 +81,33 @@ namespace MUDAdventure
         private void HandlePlayerDisconnected(object sender, PlayerDisconnectedEventArgs e)
         {
             Console.WriteLine(e.Name + " has disconnected.");
+
+            lock (playerLock)
+            {
+                for (int i = 0; i < players.Count; i++)
+                {
+                    if (players[i].Equals((Player)sender))
+                    {
+                        this.players[i].PlayerConnected -= HandlePlayerConnected;
+                        this.players[i].PlayerDisconnected -= HandlePlayerDisconnected;
+                        this.players.RemoveAt(i);
+                        //this.playerThreadList[i].Abort();
+                        
+                        //this.playerThreadList[i].Interrupt();
+                        //this.playerThreadList[i].Join();                        
+
+                        this.playerThreadList[i].IsBackground = true;
+                        this.playerThreadList[i].Abort();
+
+                        //this.playerThreadList[i].Join();
+
+                        //Console.WriteLine(this.playerThreadList[i].Name + " terminating.");
+
+                        this.playerThreadList.RemoveAt(i);
+                        break;
+                    }
+                }
+            }
         }
     }
 }

@@ -23,16 +23,21 @@ namespace MUDAdventure
         private int x, y, z;
         private ObservableCollection<Player> players;
         private Dictionary<string, Room> rooms;
+        private List<NPC> npcs;
+        private Room currentRoom;
 
-        private Object playerlock = new Object();
-
-        public Player(TcpClient client, ref ObservableCollection<Player> playerlist, Dictionary<string, Room> roomlist)
+        private static object playerlock = new object();
+        private static object npclock = new object();
+        
+        public Player(TcpClient client, ref ObservableCollection<Player> playerlist, Dictionary<string, Room> roomlist, ref List<NPC> npclist)
         {
             this.tcpClient = client;
             this.name = null;
             this.players = playerlist;
 
             this.rooms = roomlist;
+
+            this.npcs = npclist;
         }
 
         public string getName()
@@ -53,9 +58,18 @@ namespace MUDAdventure
                 this.name = tempName;
                 this.connected = true;
                 this.OnPlayerConnected(new PlayerConnectedEventArgs(this.name));
-                lock (playerlock)
+                
+                Monitor.TryEnter(playerlock, 3000);
+                try
                 {
                     this.players.CollectionChanged += playerListUpdated;
+                }
+                catch (Exception ex)
+                {
+                }
+                finally
+                {
+                    Monitor.Exit(playerlock);
                 }
             }
 
@@ -63,6 +77,8 @@ namespace MUDAdventure
             this.x = 0;
             this.y = 0;
             this.z = 0;
+
+            currentRoom = rooms[this.x.ToString() + "," + this.y.ToString() + "," + this.z.ToString()];
 
             this.Look();
 
@@ -82,8 +98,7 @@ namespace MUDAdventure
         }
 
         private void Look()
-        {
-            Room currentRoom;
+        {            
             this.rooms.TryGetValue(this.x.ToString() + "," + this.y.ToString() + "," + this.z.ToString(), out currentRoom);
 
             try
@@ -111,7 +126,27 @@ namespace MUDAdventure
                         exits += "W";
                     }
 
-                    writeToClient(currentRoom.RoomName + "\r\n" + exits + "\r\n" + currentRoom.RoomDescription + "\r\n\r\n");
+                    writeToClient("\r\n" + currentRoom.RoomName + "\r\n" + exits + "\r\n" + currentRoom.RoomDescription);
+
+                    //check to see if any NPCs are here
+                    Monitor.TryEnter(npclock, 3000);
+                    try
+                    {
+                        foreach (NPC npc in npcs)
+                        {
+                            if (npc.X == this.x && npc.Y == this.y && npc.Z == this.z)
+                            {
+                                writeToClient(npc.Name + " is here.");
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                    }
+                    finally
+                    {
+                        Monitor.Exit(npclock);
+                    }
                 }
                 else
                 {
@@ -124,17 +159,63 @@ namespace MUDAdventure
             }
         }
 
+        private void Look(string args)
+        {
+            //TODO: implement logic for looking at objects,  npcs, and other players
+            bool found = false;
+            Monitor.TryEnter(npclock, 3000);
+            try
+            {
+                foreach (NPC npc in npcs)
+                {
+                    if (npc.X == this.x && npc.Y == this.y && npc.Z == this.z)
+                    {
+                        foreach (string refname in npc.RefNames)
+                        {
+                            if (refname.ToLower() == args.ToLower())
+                            {
+                                writeToClient(npc.Description);
+                            }
+                        }
+                    }
+
+                    if (!found)
+                    {
+                        writeToClient("That person or thing is not here.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+            }
+            finally
+            {
+                Monitor.Exit(npclock);
+            }
+        }
+
         private void ParseInput(string input)
         {
-            if (input.ToLower() == "n" || input.ToLower() == "s" || input.ToLower() == "e" || input.ToLower() == "w")
+            input = input.ToLower();
+
+            if (input == "n" || input == "s" || input == "e" || input == "w")
             {
-                this.Move(input.ToLower());
+                this.Move(input);
             }
-            else if (input.ToLower().Contains("look"))
+            else if (input.Contains("look"))
             {
-                this.Look();
+                if (input.Length > 4)
+                {
+                    //TODO: implement look overload with arguments
+                    string args = input.Substring(5);
+                    this.Look(args);
+                }
+                else
+                {
+                    this.Look();
+                }
             }
-            else if (input.ToLower() == "exit")
+            else if (input == "exit")
             {
                 //TODO: implement event for disconnect so Server can update player list
                 this.Disconnect();
@@ -236,10 +317,6 @@ namespace MUDAdventure
             oldy = this.y;
             oldz = this.z;
 
-            //temporary holder for current room.
-            //TODO: maybe make this a class level variable since it seems to be used repeatedly
-            Room currentRoom;
-
             //getting current room.
             this.rooms.TryGetValue(this.x + "," + this.y + "," + this.z, out currentRoom);
 
@@ -313,13 +390,6 @@ namespace MUDAdventure
                 foreach (Player player in e.NewItems)
                 {
                     player.PlayerConnected += this.HandlePlayerConnected;
-                }
-            }
-            else if (e.Action == NotifyCollectionChangedAction.Remove)
-            {
-                foreach (Player player in e.OldItems)
-                {
-                    this.writeToClient(player.getName() + " has disconnected.");
                 }
             }
         }

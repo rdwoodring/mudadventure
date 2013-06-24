@@ -43,6 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="NPC.cs" />
     <Compile Include="Player.cs" />
     <Compile Include="PlayerConnectedEventArgs.cs" />
     <Compile Include="PlayerDisconnectedEventArgs.cs" />
