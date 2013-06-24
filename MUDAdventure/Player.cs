@@ -175,6 +175,8 @@ namespace MUDAdventure
                             if (refname.ToLower() == args.ToLower())
                             {
                                 writeToClient(npc.Description);
+                                found = true;
+                                break;
                             }
                         }
                     }

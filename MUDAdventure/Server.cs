@@ -44,6 +44,8 @@ namespace MUDAdventure
             //TODO: add code for loading npcs from DB
             NPC npc = new NPC(0, 0, 0, "An NPC", "An NPC is standing here.  It has no form and nothing on.", new List<string> {"NPC"});
             this.npcs.Add( npc);
+
+            this.players.CollectionChanged += HandlePlayersCollectionChanged;
         }
 
         private void ListenForClients()
@@ -76,6 +78,11 @@ namespace MUDAdventure
         private void HandlePlayerConnected(object sender, PlayerConnectedEventArgs e)
         {
             Console.WriteLine(e.Name + " has connected.");
+        }
+
+        private void HandlePlayersCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            //TODO: 
         }
 
         private void HandlePlayerDisconnected(object sender, PlayerDisconnectedEventArgs e)
