@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Net;
 using System.Net.Sockets;
+using System.Timers;
 
 namespace MUDAdventure
 {
@@ -19,6 +20,8 @@ namespace MUDAdventure
         private Dictionary<string, Room> rooms = new Dictionary<string,Room>();
         private List<NPC> npcs = new List<NPC>();
         private List<Thread> playerThreadList = new List<Thread>();
+        private System.Timers.Timer worldTimer;
+        private int time, hour;
 
         public Server()
         {
@@ -29,21 +32,32 @@ namespace MUDAdventure
             //TODO: add code for loading rooms from DB
             //rooms.Add("123", new Room()); etc., etc.
             //for now let's just create some rooms manually for testing purposes.
-            Room room = new Room("A Starting Place", "This is the starting room.  It is completely empty.", true, false, true, false, 0, 0, 0);
+            Room room = new Room("A Starting Place", "This is the starting room.  It is completely empty.", true, false, true, false, 0, 0, 0, true);
             this.rooms.Add(room.X.ToString() + "," + room.Y.ToString() + "," + room.Z.ToString(), room);
 
-            room = new Room("North of A Starting Place", "Well, you've moved to a room north of the starting room... but it's still completely empty.", false, true, true, false, 0, 1, 0);
+            room = new Room("North of A Starting Place", "Well, you've moved to a room north of the starting room... but it's still completely empty.", false, true, true, false, 0, 1, 0, false);
             this.rooms.Add(room.X.ToString() + "," + room.Y.ToString() + "," + room.Z.ToString(), room);
 
-            room = new Room("Northeast of A Starting Place", "Woohoo!  Just kidding... this room is still completely empty.", false, true, false, true, 1, 1, 0);
+            room = new Room("Northeast of A Starting Place", "Woohoo!  Just kidding... this room is still completely empty.", false, true, false, true, 1, 1, 0, false);
             this.rooms.Add(room.X.ToString() + "," + room.Y.ToString() + "," + room.Z.ToString(), room);
 
-            room = new Room("East of A Starting Place", "Nothing here.  Move along, move along.", true, false, false, true, 1, 0, 0);
+            room = new Room("East of A Starting Place", "Nothing here.  Move along, move along.", true, false, false, true, 1, 0, 0, false);
             this.rooms.Add(room.X.ToString() + "," + room.Y.ToString() + "," + room.Z.ToString(), room);
 
             //TODO: add code for loading npcs from DB
-            NPC npc = new NPC(0, 0, 0, "An NPC", "An NPC is standing here.  It has no form and nothing on.", new List<string> {"NPC"});
+            NPC npc = new NPC(0, 0, 0, "An NPC", "An NPC is standing here.  It has no form and nothing on.", new List<string> {"NPC"}, 60000, 10, 100);
             this.npcs.Add( npc);
+
+            this.time = 0;
+            this.hour = 0;
+
+            this.worldTimer = new System.Timers.Timer();
+            this.worldTimer.Interval = 100;
+
+            this.worldTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
+
+            this.worldTimer.Enabled = true;
+            
         }
 
         private void ListenForClients()
@@ -54,7 +68,7 @@ namespace MUDAdventure
             {
                 TcpClient client = this.tcpListener.AcceptTcpClient();
 
-                Player player = new Player(client, ref players, rooms, ref npcs);                      
+                Player player = new Player(client, ref players, rooms, ref npcs, this.worldTimer, this.hour);                      
 
                 Thread clientThread = new Thread(new ParameterizedThreadStart(player.initialize));
                 clientThread.Start();
@@ -108,6 +122,50 @@ namespace MUDAdventure
                     }
                 }
             }
+        }
+
+        private void OnTimedEvent(object sender, ElapsedEventArgs e)
+        {
+            this.time++;
+            //Console.WriteLine(this.time);
+
+            if (this.time % 600 == 0)
+            {
+                hour = this.time / 600;
+                //Console.WriteLine(hour);
+
+                switch (hour)
+                {
+                    case 6:
+                        Console.WriteLine("It is 6 AM");
+                        foreach (Player player in players)
+                        {
+                            player.ReceiveTime(hour);
+                        }
+                        break;
+                    case 12:
+                        Console.WriteLine("It is 12 Noon");
+                        foreach (Player player in players)
+                        {
+                            player.ReceiveTime(hour);
+                        }
+                        break;
+                    case 20:
+                        Console.WriteLine("It is 9 PM");
+                        foreach (Player player in players)
+                        {
+                            player.ReceiveTime(hour);
+                        }
+                        break;
+                    case 24:
+                        Console.WriteLine("It is Midnight");
+                        foreach (Player player in players)
+                        {
+                            player.ReceiveTime(hour);
+                        }
+                        break;
+                }
+            }            
         }
     }
 }

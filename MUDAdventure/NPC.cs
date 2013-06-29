@@ -7,15 +7,21 @@ namespace MUDAdventure
 {
     class NPC
     {
-        private int spawnX, spawnY, spawnZ, x, y, z;
+        private int spawnX, spawnY, spawnZ, x, y, z, spawntime, hitpoints, wimpy;
         private string name, description;
         private List<string> refNames;
+        private bool isDead, inCombat;
 
-        public NPC(int spx, int spy, int spz, string n, string d, List<string> refnames)
+        public NPC(int spx, int spy, int spz, string n, string d, List<string> refnames, int sptime, int hp, int wimp)
         {
             this.spawnX = spx;
             this.spawnY = spy;
             this.spawnZ = spz;
+
+            this.spawntime = sptime;
+
+            this.hitpoints = hp;
+            this.wimpy = wimp;
 
             this.x = this.spawnX;
             this.y = this.spawnY;
@@ -25,6 +31,40 @@ namespace MUDAdventure
             this.description = d;
 
             this.refNames = refnames;
+
+            this.isDead = false;
+            this.inCombat = false;
+        }
+
+        public string ReceiveAttack(int potentialdamage)
+        {
+            //TODO: implement dodge, parry, armor damage reduction or prevention
+            this.inCombat = true;
+
+            this.hitpoints -= potentialdamage;
+
+            if (this.hitpoints <= 0)
+            {
+                this.Die();
+                return "An NPC falls over, dead.";
+            }
+            else
+            {
+                return "You hit an NPC, doing some damage";
+            }
+        }
+
+        private void Die()
+        {
+            //TODO: implement die logic
+            this.isDead = true;
+            this.inCombat = false;
+        }
+
+        public bool IsDead
+        {
+            get { return this.isDead; }
+            set { this.isDead = value; }
         }
 
         public int X

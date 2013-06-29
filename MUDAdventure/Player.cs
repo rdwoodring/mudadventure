@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Net;
 using System.Net.Sockets;
+using System.Timers;
 
 namespace MUDAdventure
 {
@@ -14,8 +15,7 @@ namespace MUDAdventure
         public event EventHandler<PlayerConnectedEventArgs> PlayerConnected;
         public event EventHandler<PlayerMovedEventArgs> PlayerMoved;
         public event EventHandler<PlayerDisconnectedEventArgs> PlayerDisconnected;
-
-        private bool connected;
+        
         private string name;
         private TcpClient tcpClient;
         NetworkStream clientStream;
@@ -25,11 +25,20 @@ namespace MUDAdventure
         private Dictionary<string, Room> rooms;
         private List<NPC> npcs;
         private Room currentRoom;
+        private System.Timers.Timer worldTimer;
+        private int worldTime;
 
         private static object playerlock = new object();
-        private static object npclock = new object();
+        private static object npclock = new object();       
+
+        /****************************************/
+        /*        FINITE STATE MACHINES         */
+        /****************************************/
+        private bool inCombat = false;
+        private bool isNight = false;
+        private bool connected;
         
-        public Player(TcpClient client, ref ObservableCollection<Player> playerlist, Dictionary<string, Room> roomlist, ref List<NPC> npclist)
+        public Player(TcpClient client, ref ObservableCollection<Player> playerlist, Dictionary<string, Room> roomlist, ref List<NPC> npclist, System.Timers.Timer timer, int time)
         {
             this.tcpClient = client;
             this.name = null;
@@ -38,6 +47,18 @@ namespace MUDAdventure
             this.rooms = roomlist;
 
             this.npcs = npclist;
+
+            this.worldTimer = timer;
+
+            //aTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
+            this.worldTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
+
+            this.worldTime = time;
+
+            if (this.worldTime < 6 || this.worldTime > 21)
+            {
+                isNight = true;
+            }
         }
 
         public string getName()
@@ -97,65 +118,88 @@ namespace MUDAdventure
             }
         }
 
+        public void ReceiveTime(int hour)
+        {
+            switch (hour)
+            {
+                case 6:
+                    this.writeToClient("The sun crests the horizon and begins its daily ascent.\r\n");
+                    break;
+                case 12:
+                    this.writeToClient("The sun sits directly overhead, at its apex.\r\n");
+                    break;
+                case 21:
+                    this.writeToClient("The sun touches the horizon and slowly slips downwards, leaving the world in darkness.\r\n");
+                    break;
+            }
+        }
+
         private void Look()
-        {            
+        {
             this.rooms.TryGetValue(this.x.ToString() + "," + this.y.ToString() + "," + this.z.ToString(), out currentRoom);
 
-            try
-            {
-                if (currentRoom != null)
+            if (!isNight || currentRoom.LightedRoom)
+            {                
+                try
                 {
-                    string exits = "";
-                    if (currentRoom.NorthExit)
+                    if (currentRoom != null)
                     {
-                        exits += "N ";
-                    }
-
-                    if (currentRoom.EastExit)
-                    {
-                        exits += "E ";
-                    }
-
-                    if (currentRoom.SouthExit)
-                    {
-                        exits += "S ";
-                    }
-
-                    if (currentRoom.WestExit)
-                    {
-                        exits += "W";
-                    }
-
-                    writeToClient("\r\n" + currentRoom.RoomName + "\r\n" + exits + "\r\n" + currentRoom.RoomDescription);
-
-                    //check to see if any NPCs are here
-                    Monitor.TryEnter(npclock, 3000);
-                    try
-                    {
-                        foreach (NPC npc in npcs)
+                        string exits = "";
+                        if (currentRoom.NorthExit)
                         {
-                            if (npc.X == this.x && npc.Y == this.y && npc.Z == this.z)
+                            exits += "N ";
+                        }
+
+                        if (currentRoom.EastExit)
+                        {
+                            exits += "E ";
+                        }
+
+                        if (currentRoom.SouthExit)
+                        {
+                            exits += "S ";
+                        }
+
+                        if (currentRoom.WestExit)
+                        {
+                            exits += "W";
+                        }
+
+                        writeToClient("\r\n" + currentRoom.RoomName + "\r\n" + exits + "\r\n" + currentRoom.RoomDescription);
+
+                        //check to see if any NPCs are here
+                        Monitor.TryEnter(npclock, 3000);
+                        try
+                        {
+                            foreach (NPC npc in npcs)
                             {
-                                writeToClient(npc.Name + " is here.");
+                                if (npc.X == this.x && npc.Y == this.y && npc.Z == this.z)
+                                {
+                                    writeToClient(npc.Name + " is here.");
+                                }
                             }
                         }
+                        catch (Exception ex)
+                        {
+                        }
+                        finally
+                        {
+                            Monitor.Exit(npclock);
+                        }
                     }
-                    catch (Exception ex)
+                    else
                     {
-                    }
-                    finally
-                    {
-                        Monitor.Exit(npclock);
+                        writeToClient("An Empty Void\r\nThis room is a total void.  It is bereft of anything because, in fact, it does not exist.  You've reached the edge of the world... and fallen off.");
                     }
                 }
-                else
+                catch (NullReferenceException e)
                 {
-                    writeToClient("An Empty Void\r\nThis room is a total void.  It is bereft of anything because, in fact, it does not exist.  You've reached the edge of the world... and fallen off.");
+                    writeToClient(e.ToString());
                 }
             }
-            catch (NullReferenceException e)
+            else
             {
-                writeToClient(e.ToString());
+                writeToClient("\r\nIt's pitch black... Do you have a light, perhaps?");
             }
         }
 
@@ -172,9 +216,10 @@ namespace MUDAdventure
                     {
                         foreach (string refname in npc.RefNames)
                         {
-                            if (refname.ToLower() == args.ToLower())
+                            if (refname.ToLower() == args)
                             {
                                 writeToClient(npc.Description);
+                                found = true;
                             }
                         }
                     }
@@ -198,22 +243,27 @@ namespace MUDAdventure
         {
             input = input.ToLower();
 
+            //TODO: fix errors when input entered is too short. substring is causing problems.
             if (input == "n" || input == "s" || input == "e" || input == "w")
             {
                 this.Move(input);
             }
-            else if (input.Contains("look"))
+            else if (input.Substring(0,4).Contains("look"))
             {
                 if (input.Length > 4)
                 {
-                    //TODO: implement look overload with arguments
                     string args = input.Substring(5);
-                    this.Look(args);
+                    this.Look(args.ToLower());
                 }
                 else
                 {
                     this.Look();
                 }
+            }
+            else if (input.Substring(0, 4).Contains("kill"))
+            {
+                string args = input.Substring(5);
+                this.Kill(args.ToLower());
             }
             else if (input == "exit")
             {
@@ -224,6 +274,16 @@ namespace MUDAdventure
             {
                 this.writeToClient("Unrecognized command.");
             }
+        }
+
+        private void Kill(string args)
+        {
+            //TODO: fill method with logic for attacking
+        }
+
+        private void Attack(NPC npc)
+        {
+            
         }
 
         private void Disconnect()
@@ -436,6 +496,20 @@ namespace MUDAdventure
                     this.players[this.players.IndexOf((Player)sender)].PlayerMoved -= this.HandlePlayerMoved;
                     this.players[this.players.IndexOf((Player)sender)].PlayerDisconnected -= this.HandlePlayerDisconnected;
                 }
+            }
+        }
+
+        private void OnTimedEvent(object sender, ElapsedEventArgs e)
+        {
+            //TODO: HP regen depending on constitution
+            //this.writeToClient("hp regenerating");
+            
+            //TODO: MOVE regen
+            //this.writeToClient("moves regenerating");
+
+            if (inCombat)
+            {
+                //call attack method depending upon speed.
             }
         }
     }

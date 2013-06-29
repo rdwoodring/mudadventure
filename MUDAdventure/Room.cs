@@ -9,9 +9,10 @@ namespace MUDAdventure
     {
         private string roomName, roomDescription;
         private bool northExit, southExit, eastExit, westExit;
-        int x, y, z;
+        private int x, y, z;
+        private bool lightedRoom;
 
-        public Room(string name, string desc, bool nexit, bool sexit, bool eexit, bool wexit, int xloc, int yloc, int zloc)
+        public Room(string name, string desc, bool nexit, bool sexit, bool eexit, bool wexit, int xloc, int yloc, int zloc, bool light)
         {
             this.roomName = name;
             this.roomDescription = desc;
@@ -24,6 +25,8 @@ namespace MUDAdventure
             this.x = xloc;
             this.y = yloc;
             this.z = zloc;
+
+            this.lightedRoom = light;
         }
 
         public int X
@@ -78,6 +81,12 @@ namespace MUDAdventure
         {
             get { return this.westExit; }
             set { this.westExit = value; }
+        }
+
+        public bool LightedRoom
+        {
+            get { return this.lightedRoom; }
+            set { this.lightedRoom = value; }
         }
     }
 }
