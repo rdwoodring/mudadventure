@@ -134,37 +134,10 @@ namespace MUDAdventure
                 hour = this.time / 600;
                 //Console.WriteLine(hour);
 
-                switch (hour)
+                foreach (Player player in players)
                 {
-                    case 6:
-                        Console.WriteLine("It is 6 AM");
-                        foreach (Player player in players)
-                        {
-                            player.ReceiveTime(hour);
-                        }
-                        break;
-                    case 12:
-                        Console.WriteLine("It is 12 Noon");
-                        foreach (Player player in players)
-                        {
-                            player.ReceiveTime(hour);
-                        }
-                        break;
-                    case 20:
-                        Console.WriteLine("It is 9 PM");
-                        foreach (Player player in players)
-                        {
-                            player.ReceiveTime(hour);
-                        }
-                        break;
-                    case 24:
-                        Console.WriteLine("It is Midnight");
-                        foreach (Player player in players)
-                        {
-                            player.ReceiveTime(hour);
-                        }
-                        break;
-                }
+                    player.ReceiveTime(hour);
+                }                
             }            
         }
     }

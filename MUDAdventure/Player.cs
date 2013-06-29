@@ -308,6 +308,10 @@ namespace MUDAdventure
                 string args = input.Substring(5);
                 this.Kill(args.ToLower());
             }
+            else if (input.StartsWith("inf"))
+            {
+                this.Info();                
+            }
             else if (input == "exit")
             {
                 //TODO: implement event for disconnect so Server can update player list
@@ -317,6 +321,16 @@ namespace MUDAdventure
             {
                 this.writeToClient("Unrecognized command.");
             }
+        }
+
+        private void Info()
+        {
+            StringBuilder message = new StringBuilder();
+            message.AppendLine("You are " + this.name + ".");
+            message.AppendLine("HP: " + this.currentHitpoints + "/" + this.totalHitpoints + "; MV: " + this.currentMoves + "/" + this.totalMoves);
+            message.AppendLine("The time is " + this.worldTime);
+
+            this.writeToClient(message.ToString());
         }
 
         private void Kill(string args)
