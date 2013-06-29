@@ -27,6 +27,9 @@ namespace MUDAdventure
         private Room currentRoom;
         private System.Timers.Timer worldTimer;
         private int worldTime;
+        private int totalMoves, currentMoves, totalHitpoints, currentHitpoints;
+
+        private int timeCounter = 0; //for regenerating moves and hp
 
         private static object playerlock = new object();
         private static object npclock = new object();       
@@ -36,6 +39,7 @@ namespace MUDAdventure
         /****************************************/
         private bool inCombat = false;
         private bool isNight = false;
+        private bool enteringName, enteringPassword, mainGame;
         private bool connected;
         
         public Player(TcpClient client, ref ObservableCollection<Player> playerlist, Dictionary<string, Room> roomlist, ref List<NPC> npclist, System.Timers.Timer timer, int time)
@@ -69,17 +73,17 @@ namespace MUDAdventure
         public void initialize(object e)
         {
             this.clientStream = tcpClient.GetStream();
-            this.encoder = new ASCIIEncoding();            
-            
-            this.writeToClient("Welcome to my MUD\r\nWhat is your name, traveller? ");
+            this.encoder = new ASCIIEncoding();
 
+            this.enteringName = true;
+            this.writeToClient("Welcome to my MUD\r\nWhat is your name, traveller? ");
             string tempName = readFromClient();
             if (tempName != null && tempName != "")
             {
                 this.name = tempName;
                 this.connected = true;
                 this.OnPlayerConnected(new PlayerConnectedEventArgs(this.name));
-                
+
                 Monitor.TryEnter(playerlock, 3000);
                 try
                 {
@@ -87,17 +91,38 @@ namespace MUDAdventure
                 }
                 catch (Exception ex)
                 {
+                    Console.WriteLine(this.name);
+                    Console.WriteLine("Error: " + ex.Message);
+                    Console.WriteLine("Trace: " + ex.StackTrace);
                 }
                 finally
                 {
                     Monitor.Exit(playerlock);
                 }
             }
+            this.enteringName = false;
+
+            //TODO: check for player in database
+            //TODO: if player exists, ask for password
+            this.enteringPassword = true;
+            this.writeToClient("Please enter your password: ");
+            this.readFromClient();
+            //TODO: if passwords match, allow entrance
+            this.enteringPassword = false;
+
+            this.mainGame = true;            
 
             //TODO: replace with loading player's location from DB
             this.x = 0;
             this.y = 0;
             this.z = 0;
+
+            //TODO: replace with loading player's stats from db
+            //stats = stats;
+            this.totalMoves = 10;
+            this.currentMoves = this.totalMoves;
+            this.totalHitpoints = 10;
+            this.currentHitpoints = this.totalHitpoints;
 
             currentRoom = rooms[this.x.ToString() + "," + this.y.ToString() + "," + this.z.ToString()];
 
@@ -136,6 +161,8 @@ namespace MUDAdventure
 
         private void Look()
         {
+            string message = String.Empty;
+
             this.rooms.TryGetValue(this.x.ToString() + "," + this.y.ToString() + "," + this.z.ToString(), out currentRoom);
 
             if (!isNight || currentRoom.LightedRoom)
@@ -165,7 +192,7 @@ namespace MUDAdventure
                             exits += "W";
                         }
 
-                        writeToClient("\r\n" + currentRoom.RoomName + "\r\n" + exits + "\r\n" + currentRoom.RoomDescription);
+                        message += "\r\n" + currentRoom.RoomName + "\r\n" + exits + "\r\n" + currentRoom.RoomDescription;
 
                         //check to see if any NPCs are here
                         Monitor.TryEnter(npclock, 3000);
@@ -175,7 +202,7 @@ namespace MUDAdventure
                             {
                                 if (npc.X == this.x && npc.Y == this.y && npc.Z == this.z)
                                 {
-                                    writeToClient(npc.Name + " is here.");
+                                    message += "\r\n" + npc.Name + " is here.";
                                 }
                             }
                         }
@@ -186,6 +213,8 @@ namespace MUDAdventure
                         {
                             Monitor.Exit(npclock);
                         }
+
+                        writeToClient(message);
                     }
                     else
                     {
@@ -331,11 +360,77 @@ namespace MUDAdventure
 
         private void writeToClient(string message)
         {
-            byte[] buffer;
+            byte[] buffer;            
 
             if (message != null)
             {
-                buffer = this.encoder.GetBytes(message + "\r\n");
+                if (enteringName || enteringPassword)
+                {
+                    buffer = this.encoder.GetBytes(message + "\r\n");
+                }
+                else if (mainGame)
+                {
+                    string health = String.Empty;
+                    string moves = String.Empty;
+                    string append = String.Empty;
+
+                    if ((double)(this.currentHitpoints / this.totalHitpoints) <= .1)
+                    {
+                        health += "HP: Awful";
+                    }
+                    else if ((double)(this.currentHitpoints / this.totalHitpoints) <= .25)
+                    {
+                        health += "HP: Bloodied";
+                    }
+                    else if ((double)(this.currentHitpoints / this.totalHitpoints) <= .4)
+                    {
+                        health += "HP: Wounded";
+                    }
+                    else if ((double)(this.currentHitpoints / this.totalHitpoints) <= .6)
+                    {
+                        health += "HP: Hurt";
+                    }
+                    else if ((double)(this.currentHitpoints / this.totalHitpoints) <= .75)
+                    {
+                        health += "HP: Bruised";
+                    }
+                    else if ((double)(this.currentHitpoints / this.totalHitpoints) < 1)
+                    {
+                        health += "HP: Scratched";
+                    }
+
+                    if ((double)(this.currentMoves / this.totalMoves) <= .1)
+                    {
+                        moves += "MV: Spent";
+                    }
+                    else if ((double)(this.currentMoves / this.totalMoves) <= .25)
+                    {
+                        moves += "MV: Exhausted";
+                    }
+                    else if ((double)(this.currentMoves / this.totalMoves) <= .4)
+                    {
+                        moves += "MV: Tired";
+                    }
+                    else if ((double)(this.currentMoves / this.totalMoves) <= .6)
+                    {
+                        moves += "MV: Weary";
+                    }
+
+                    if (health != String.Empty)
+                    {
+                        append = health + "; " + moves;
+                    }
+                    else
+                    {
+                        append = health + moves;
+                    }
+
+                    buffer = this.encoder.GetBytes(message + "\r\n" + append + ">");
+                }
+                else
+                {
+                    buffer = this.encoder.GetBytes(message + "\r\n");
+                }
 
                 this.clientStream.Write(buffer, 0, buffer.Length);
                 this.clientStream.Flush();
@@ -418,6 +513,7 @@ namespace MUDAdventure
                     this.Look();
 
                     this.OnPlayerMoved(new PlayerMovedEventArgs(this.x, this.y, oldx, oldy, this.name, dir));
+                    this.currentMoves--;
                 }
                 //if we haven't moved, that means there wasn't an available exit in that direction.
                 //let's tell the stupid player with an message
@@ -501,11 +597,20 @@ namespace MUDAdventure
 
         private void OnTimedEvent(object sender, ElapsedEventArgs e)
         {
+            this.timeCounter++;
+
             //TODO: HP regen depending on constitution
             //this.writeToClient("hp regenerating");
             
             //TODO: MOVE regen
             //this.writeToClient("moves regenerating");
+            if (this.currentMoves < this.totalMoves)
+            {
+                if (this.timeCounter % 50 == 0)
+                {
+                    this.currentMoves++;
+                }
+            }
 
             if (inCombat)
             {
