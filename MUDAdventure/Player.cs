@@ -290,20 +290,20 @@ namespace MUDAdventure
             else if (input == String.Empty)
             {
                 writeToClient(String.Empty);
-            }
-            else if (input.Substring(0, 4).Contains("look"))
-            {
-                if (input.Length > 4)
+            }            
+            else if (input.StartsWith("look"))
+            {                
+                if (input.Length > 4) //has args after it
                 {
                     string args = input.Substring(5);
                     this.Look(args.ToLower());
                 }
-                else
+                else //no args after it
                 {
                     this.Look();
                 }
             }
-            else if (input.Substring(0, 4).Contains("kill"))
+            else if (input.StartsWith("kill"))
             {
                 string args = input.Substring(5);
                 this.Kill(args.ToLower());
