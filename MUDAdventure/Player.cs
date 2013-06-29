@@ -237,35 +237,44 @@ namespace MUDAdventure
         {
             //TODO: implement logic for looking at objects,  npcs, and other players
             bool found = false;
-            Monitor.TryEnter(npclock, 3000);
-            try
+
+            if (!isNight || currentRoom.LightedRoom)
             {
-                foreach (NPC npc in npcs)
+
+                Monitor.TryEnter(npclock, 3000);
+                try
                 {
-                    if (npc.X == this.x && npc.Y == this.y && npc.Z == this.z)
+                    foreach (NPC npc in npcs)
                     {
-                        foreach (string refname in npc.RefNames)
+                        if (npc.X == this.x && npc.Y == this.y && npc.Z == this.z)
                         {
-                            if (refname.ToLower() == args)
+                            foreach (string refname in npc.RefNames)
                             {
-                                writeToClient(npc.Description);
-                                found = true;
+                                if (refname.ToLower() == args)
+                                {
+                                    writeToClient(npc.Description);
+                                    found = true;
+                                }
                             }
                         }
-                    }
 
-                    if (!found)
-                    {
-                        writeToClient("That person or thing is not here.");
+                        if (!found)
+                        {
+                            writeToClient("That person or thing is not here.");
+                        }
                     }
                 }
+                catch (Exception ex)
+                {
+                }
+                finally
+                {
+                    Monitor.Exit(npclock);
+                }
             }
-            catch (Exception ex)
+            else
             {
-            }
-            finally
-            {
-                Monitor.Exit(npclock);
+                writeToClient("It's too dark to see that person or thing.");
             }
         }
 
@@ -278,7 +287,7 @@ namespace MUDAdventure
             {
                 this.Move(input);
             }
-            else if (input == "\r\n")
+            else if (input == String.Empty)
             {
                 writeToClient(String.Empty);
             }
@@ -466,7 +475,6 @@ namespace MUDAdventure
                 }
             }
 
-            //Console.WriteLine(finalMessage.TrimEnd('\r','\n') + " has connected.");
             return finalMessage.TrimEnd('\r', '\n');
         }
 
