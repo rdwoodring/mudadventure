@@ -7,6 +7,7 @@ using System.Threading;
 using System.Net;
 using System.Net.Sockets;
 using System.Timers;
+using System.Diagnostics;
 
 namespace MUDAdventure
 {
@@ -277,7 +278,11 @@ namespace MUDAdventure
             {
                 this.Move(input);
             }
-            else if (input.Substring(0,4).Contains("look"))
+            else if (input == "\r\n")
+            {
+                writeToClient(String.Empty);
+            }
+            else if (input.Substring(0, 4).Contains("look"))
             {
                 if (input.Length > 4)
                 {
@@ -374,19 +379,19 @@ namespace MUDAdventure
                     string moves = String.Empty;
                     string append = String.Empty;
 
-                    if ((double)(this.currentHitpoints / this.totalHitpoints) <= .1)
+                    if (((double)this.currentHitpoints / (double)this.totalHitpoints) <= .1)
                     {
                         health += "HP: Awful";
                     }
-                    else if ((double)(this.currentHitpoints / this.totalHitpoints) <= .25)
+                    else if (((double)this.currentHitpoints / (double)this.totalHitpoints) <= .25)
                     {
                         health += "HP: Bloodied";
                     }
-                    else if ((double)(this.currentHitpoints / this.totalHitpoints) <= .4)
+                    else if (((double)this.currentHitpoints / (double)this.totalHitpoints) <= .4)
                     {
                         health += "HP: Wounded";
                     }
-                    else if ((double)(this.currentHitpoints / this.totalHitpoints) <= .6)
+                    else if (((double)this.currentHitpoints / (double)this.totalHitpoints) <= .6)
                     {
                         health += "HP: Hurt";
                     }
@@ -399,19 +404,21 @@ namespace MUDAdventure
                         health += "HP: Scratched";
                     }
 
-                    if ((double)(this.currentMoves / this.totalMoves) <= .1)
+                    Debug.Print((((double)this.currentMoves / (double)this.totalMoves)).ToString());
+
+                    if (((double)this.currentMoves / (double)this.totalMoves) <= .1)
                     {
                         moves += "MV: Spent";
                     }
-                    else if ((double)(this.currentMoves / this.totalMoves) <= .25)
+                    else if (((double)this.currentMoves / (double)this.totalMoves) <= .25)
                     {
                         moves += "MV: Exhausted";
                     }
-                    else if ((double)(this.currentMoves / this.totalMoves) <= .4)
+                    else if (((double)this.currentMoves / (double)this.totalMoves) <= .4)
                     {
                         moves += "MV: Tired";
                     }
-                    else if ((double)(this.currentMoves / this.totalMoves) <= .6)
+                    else if (((double)this.currentMoves / (double)this.totalMoves) <= .6)
                     {
                         moves += "MV: Weary";
                     }
@@ -478,48 +485,55 @@ namespace MUDAdventure
             //make sure the room we are in exists and is not null
             if (currentRoom != null)
             {
-                //check the movement direction, and see if an exit is available that way.
-                switch (dir)
+                if (currentMoves > 0)
                 {
-                    case "n":
-                        if (currentRoom.NorthExit)
-                        {
-                            this.y++;
-                        }
-                        break;
-                    case "s":
-                        if (currentRoom.SouthExit)
-                        {
-                            this.y--;
-                        }
-                        break;
-                    case "e":
-                        if (currentRoom.EastExit)
-                        {
-                            this.x++;
-                        }
-                        break;
-                    case "w":
-                        if (currentRoom.WestExit)
-                        {
-                            this.x--;
-                        }
-                        break;
-                }
+                    //check the movement direction, and see if an exit is available that way.
+                    switch (dir)
+                    {
+                        case "n":
+                            if (currentRoom.NorthExit)
+                            {
+                                this.y++;
+                            }
+                            break;
+                        case "s":
+                            if (currentRoom.SouthExit)
+                            {
+                                this.y--;
+                            }
+                            break;
+                        case "e":
+                            if (currentRoom.EastExit)
+                            {
+                                this.x++;
+                            }
+                            break;
+                        case "w":
+                            if (currentRoom.WestExit)
+                            {
+                                this.x--;
+                            }
+                            break;
+                    }
 
-                //if we have moved, let's look around the new room automatically and raise the OnPlayerMoved event
-                if (this.x != oldx || this.y != oldy || this.z != oldz)
-                {
-                    this.Look();
+                    //if we have moved, let's look around the new room automatically and raise the OnPlayerMoved event
+                    if (this.x != oldx || this.y != oldy || this.z != oldz)
+                    {
+                        this.Look();
 
-                    this.OnPlayerMoved(new PlayerMovedEventArgs(this.x, this.y, oldx, oldy, this.name, dir));
-                    this.currentMoves--;
+                        this.OnPlayerMoved(new PlayerMovedEventArgs(this.x, this.y, oldx, oldy, this.name, dir));
+                        this.currentMoves--;
+                    }
+                    //if we haven't moved, that means there wasn't an available exit in that direction.
+                    //let's tell the stupid player with an message
+                    else
+                    {
+                        writeToClient("You cannot go that direction.");
+                    }
                 }
-                //if we haven't moved, that means there wasn't an available exit in that direction.
-                //let's tell the stupid player with an message
                 else
                 {
-                    writeToClient("You cannot go that direction.");
+                    writeToClient("You are too tired to move.");
                 }
             }
         }
@@ -603,7 +617,6 @@ namespace MUDAdventure
             //this.writeToClient("hp regenerating");
             
             //TODO: MOVE regen
-            //this.writeToClient("moves regenerating");
             if (this.currentMoves < this.totalMoves)
             {
                 if (this.timeCounter % 50 == 0)
