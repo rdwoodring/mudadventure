@@ -3,20 +3,24 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Timers;
+using System.Collections.ObjectModel;
 
 namespace MUDAdventure
 {
     class NPC
     {
-        private int spawnX, spawnY, spawnZ, x, y, z, spawntime, hitpoints, wimpy;
+        private int spawnX, spawnY, spawnZ, x, y, z, spawntime, totalHitpoints, currentHitpoints, wimpy;
         private string name, description;
         private List<string> refNames;
         private bool isDead, inCombat;
         private Object combatTarget;
+        private System.Timers.Timer worldTimer;
+        private ObservableCollection<Player> players;
 
         private Object hpLock = new Object();
 
-        public NPC(int spx, int spy, int spz, string n, string d, List<string> refnames, int sptime, int hp, int wimp)
+        public NPC(int spx, int spy, int spz, string n, string d, List<string> refnames, int sptime, int hp, int wimp, System.Timers.Timer timer, ObservableCollection<Player> playerList)
         {
             this.spawnX = spx;
             this.spawnY = spy;
@@ -24,7 +28,8 @@ namespace MUDAdventure
 
             this.spawntime = sptime;
 
-            this.hitpoints = hp;
+            this.totalHitpoints = hp;
+            this.currentHitpoints = this.totalHitpoints;
             this.wimpy = wimp;
 
             this.x = this.spawnX;
@@ -42,6 +47,12 @@ namespace MUDAdventure
 
             this.isDead = false;
             this.inCombat = false;
+
+            this.worldTimer = timer;
+
+            this.worldTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
+
+            this.players = playerList;
         }
 
         public string ReceiveAttack(int potentialdamage)
@@ -52,7 +63,7 @@ namespace MUDAdventure
             Monitor.TryEnter(this.hpLock);
             try
             {
-                this.hitpoints -= potentialdamage;
+                this.currentHitpoints -= potentialdamage;
             }
             catch (Exception ex)
             {
@@ -64,7 +75,7 @@ namespace MUDAdventure
                 Monitor.Exit(this.hpLock);
             }
 
-            if (this.hitpoints <= 0)
+            if (this.currentHitpoints <= 0)
             {
                 this.Die();
                 return "You hit an NPC, doing some damage.\r\nAn NPC falls over, dead.";
@@ -80,6 +91,7 @@ namespace MUDAdventure
             //TODO: implement die logic
             this.isDead = true;
             this.inCombat = false;
+            this.combatTarget = null;
         }
 
         public bool IsDead
@@ -128,6 +140,34 @@ namespace MUDAdventure
         {
             get { return this.combatTarget; }
             set { this.combatTarget = value; }
+        }
+
+        private void OnTimedEvent(object sender, ElapsedEventArgs e)
+        {
+            if (this.inCombat)
+            {
+                if (this.wimpy >= ((double)this.currentHitpoints / (double)this.totalHitpoints)*100)
+                {
+                    //TODO: implement flee logic
+                }
+                else
+                {
+                    //call attack method depending upon speed.
+                    if (!this.players[players.IndexOf((Player)combatTarget)].IsDead)
+                    {
+                        this.players[players.IndexOf((Player)combatTarget)].ReceiveAttack(2);
+                    }
+                    else if (this.players[players.IndexOf((Player)combatTarget)].IsDead)
+                    {
+                        this.inCombat = false;
+                        this.combatTarget = null;
+                    }
+                }
+            }
+            else
+            {
+                //TODO: implement random movement logic
+            }
         }
     }
 }

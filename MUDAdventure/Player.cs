@@ -34,7 +34,8 @@ namespace MUDAdventure
         private int timeCounter = 0; //for regenerating moves and hp
 
         private static object playerlock = new object();
-        private static object npclock = new object();       
+        private static object npclock = new object();
+        private Object hplock = new Object();
 
         /****************************************/
         /*        FINITE STATE MACHINES         */
@@ -43,6 +44,7 @@ namespace MUDAdventure
         private bool isNight = false;
         private bool enteringName, enteringPassword, mainGame;
         private bool connected;
+        private bool isDead = false;
         
         public Player(TcpClient client, ref ObservableCollection<Player> playerlist, Dictionary<string, Room> roomlist, ref List<NPC> npclist, System.Timers.Timer timer, int time)
         {
@@ -674,6 +676,55 @@ namespace MUDAdventure
             }
         }
 
+        public void ReceiveAttack(int potentialdamage)
+        {
+            //TODO: implement dodge, parry, armor damage reduction or prevention
+            this.inCombat = true;
+
+            Monitor.TryEnter(this.hplock);
+            try
+            {
+                this.currentHitpoints -= potentialdamage;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error: {0}", ex.Message);
+                Console.WriteLine("Trace: {0}", ex.StackTrace);
+            }
+            finally
+            {
+                Monitor.Exit(this.hplock);
+            }
+
+            if (this.currentHitpoints <= 0)
+            {
+                this.Die();
+                writeToClient("An NPC hits you, doing some damage.\r\nYou are dead.");
+            }
+            else
+            {
+                writeToClient("An NPC hits you, doing some damage.");
+            }
+        }
+
+        private void Die()
+        {
+            this.inCombat = false;
+            this.combatTarget = null;
+            this.isDead = true;
+        }
+
+        /**************************************************************************/
+        /*                        ACCESSORS                                       */
+        /**************************************************************************/
+
+        public bool IsDead
+        {
+            get { return this.isDead; }
+            set { this.isDead = value; }
+        }
+
+
         /**************************************************************************/
         /*                       EVENT HANDLERS                                   */
         /**************************************************************************/
@@ -753,7 +804,6 @@ namespace MUDAdventure
 
             if (this.inCombat)
             {
-                int index = this.npcs.IndexOf((NPC)combatTarget);
                 //call attack method depending upon speed.
                 if (!this.npcs[npcs.IndexOf((NPC)combatTarget)].IsDead)
                 {

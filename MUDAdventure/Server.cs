@@ -29,6 +29,16 @@ namespace MUDAdventure
             this.listenThread = new Thread(new ThreadStart(ListenForClients));
             this.listenThread.Start();
 
+            this.worldTimer = new System.Timers.Timer();
+            this.worldTimer.Interval = 100;
+
+            this.worldTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
+
+            this.worldTimer.Enabled = true;
+
+            this.time = 0;
+            this.hour = 0; 
+
             //TODO: add code for loading rooms from DB
             //rooms.Add("123", new Room()); etc., etc.
             //for now let's just create some rooms manually for testing purposes.
@@ -45,19 +55,8 @@ namespace MUDAdventure
             this.rooms.Add(room.X.ToString() + "," + room.Y.ToString() + "," + room.Z.ToString(), room);
 
             //TODO: add code for loading npcs from DB
-            NPC npc = new NPC(0, 0, 0, "An NPC", "An NPC is standing here.  It has no form and nothing on.", new List<string> {"NPC"}, 60000, 10, 100);
-            this.npcs.Add( npc);
-
-            this.time = 0;
-            this.hour = 0;
-
-            this.worldTimer = new System.Timers.Timer();
-            this.worldTimer.Interval = 100;
-
-            this.worldTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
-
-            this.worldTimer.Enabled = true;
-            
+            NPC npc = new NPC(0, 0, 0, "An NPC", "An NPC is standing here.  It has no form and nothing on.", new List<string> {"NPC"}, 60000, 10, 50, this.worldTimer, this.players);
+            this.npcs.Add( npc);                                   
         }
 
         private void ListenForClients()
