@@ -55,7 +55,7 @@ namespace MUDAdventure
             this.rooms.Add(room.X.ToString() + "," + room.Y.ToString() + "," + room.Z.ToString(), room);
 
             //TODO: add code for loading npcs from DB
-            NPC npc = new NPC(0, 0, 0, "An NPC", "An NPC is standing here.  It has no form and nothing on.", new List<string> {"NPC"}, 60000, 10, 50, this.worldTimer, this.players);
+            NPC npc = new NPC(0, 0, 0, "An NPC", "An NPC is standing here.  It has no form and nothing on.", new List<string> {"NPC"}, 60000, 10, 50, this.worldTimer, this.players, this.rooms);
             this.npcs.Add( npc);                                   
         }
 
@@ -109,8 +109,8 @@ namespace MUDAdventure
                         //this.playerThreadList[i].Interrupt();
                         //this.playerThreadList[i].Join();                        
 
-                        this.playerThreadList[i].IsBackground = true;
-                        this.playerThreadList[i].Abort();
+                        //this.playerThreadList[i].IsBackground = true;
+                        //this.playerThreadList[i].Abort();
 
                         //this.playerThreadList[i].Join();
 

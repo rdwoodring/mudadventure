@@ -5,15 +5,15 @@ using System.Text;
 
 namespace MUDAdventure
 {
-    class PlayerMovedEventArgs : EventArgs
+    class FledEventArgs : EventArgs
     {
         private int x, y, z, oldx, oldy, oldz;
         private string name, direction;
 
-        public PlayerMovedEventArgs(int xloc, int yloc, int zloc, int oldxloc, int oldyloc, int oldzloc, string pname, string dir)
+        public FledEventArgs(int xloc, int yloc, int zloc, int oldxloc, int oldyloc, int oldzloc, string pname, string dir)
         {
-            this.x=xloc;
-            this.y=yloc;
+            this.x = xloc;
+            this.y = yloc;
             this.z = zloc;
 
             this.oldx = oldxloc;

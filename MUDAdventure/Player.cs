@@ -603,7 +603,7 @@ namespace MUDAdventure
                 oldz = this.z;
 
                 //getting current room.
-                this.rooms.TryGetValue(this.x + "," + this.y + "," + this.z, out currentRoom);
+                this.rooms.TryGetValue(this.x + "," + this.y + "," + this.z, out this.currentRoom);
 
                 //make sure the room we are in exists and is not null
                 if (currentRoom != null)
@@ -644,7 +644,7 @@ namespace MUDAdventure
                         {
                             this.Look();
 
-                            this.OnPlayerMoved(new PlayerMovedEventArgs(this.x, this.y, oldx, oldy, this.name, dir));
+                            this.OnPlayerMoved(new PlayerMovedEventArgs(this.x, this.y, this.z, oldx, oldy, oldz, this.name, dir));
                             this.currentMoves--;
                         }
                         //if we haven't moved, that means there wasn't an available exit in that direction.
