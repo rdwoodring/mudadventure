@@ -110,7 +110,7 @@ namespace MUDAdventure
                         //this.playerThreadList[i].Join();                        
 
                         //this.playerThreadList[i].IsBackground = true;
-                        //this.playerThreadList[i].Abort();
+                        this.playerThreadList[i].Abort();
 
                         //this.playerThreadList[i].Join();
 

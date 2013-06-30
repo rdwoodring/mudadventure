@@ -16,6 +16,8 @@ namespace MUDAdventure
         public event EventHandler<PlayerConnectedEventArgs> PlayerConnected;
         public event EventHandler<PlayerMovedEventArgs> PlayerMoved;
         public event EventHandler<PlayerDisconnectedEventArgs> PlayerDisconnected;
+        public event EventHandler<FledEventArgs> PlayerFled;
+        public event EventHandler<FleeFailEventArgs> PlayerFleeFail;
         
         private string name;
         private TcpClient tcpClient;
@@ -30,6 +32,7 @@ namespace MUDAdventure
         private int worldTime;
         private int totalMoves, currentMoves, totalHitpoints, currentHitpoints;
         private Object combatTarget;
+        private Random rand = new Random();
 
         private int timeCounter = 0; //for regenerating moves and hp
 
@@ -45,6 +48,7 @@ namespace MUDAdventure
         private bool enteringName, enteringPassword, mainGame;
         private bool connected;
         private bool isDead = false;
+        private bool isFleeing = false;
         
         public Player(TcpClient client, ref ObservableCollection<Player> playerlist, Dictionary<string, Room> roomlist, ref List<NPC> npclist, System.Timers.Timer timer, int time)
         {
@@ -125,6 +129,8 @@ namespace MUDAdventure
                         player.PlayerConnected += this.HandlePlayerConnected;
                         player.PlayerMoved += this.HandlePlayerMoved;
                         player.PlayerDisconnected += this.HandlePlayerDisconnected;
+                        player.PlayerFled += this.HandlePlayerFled;
+                        player.PlayerFleeFail += this.HandlePlayerFleeFail;
                     }
                 }
                 catch (Exception ex)
@@ -330,7 +336,6 @@ namespace MUDAdventure
         {
             input = input.ToLower();
 
-            //TODO: fix errors when input entered is too short. substring is causing problems.
             if (input == "n" || input == "s" || input == "e" || input == "w")
             {
                 this.Move(input);
@@ -367,6 +372,10 @@ namespace MUDAdventure
             {
                 this.Info();                
             }
+            else if (input.StartsWith("flee"))
+            {
+                this.Flee();
+            }
             else if (input == "exit")
             {
                 //TODO: implement event for disconnect so Server can update player list
@@ -375,6 +384,38 @@ namespace MUDAdventure
             else
             {
                 this.writeToClient("Unrecognized command.");
+            }
+        }
+
+        private void Flee()
+        {
+            int flee = rand.Next(1, 2);
+            if (flee == 1) //the flee was successful
+            {
+                int direction = rand.Next(1, 4);
+                switch (direction)
+                {
+                    case 1:
+                        this.isFleeing = true;
+                        this.Move("n");
+                        break;
+                    case 2:
+                        this.isFleeing = true;
+                        this.Move("e");
+                        break;
+                    case 3:
+                        this.isFleeing = true;
+                        this.Move("s");
+                        break;
+                    case 4:
+                        this.isFleeing = true;
+                        this.Move("w");
+                        break;
+                }
+            }
+            else
+            {
+                this.OnPlayerFleeFail(new FleeFailEventArgs(this.x, this.y, this.z, this.name));
             }
         }
 
@@ -638,7 +679,7 @@ namespace MUDAdventure
 
         private void Move(string dir)
         {
-            if (!this.inCombat)
+            if (!this.inCombat || this.isFleeing)
             {
                 int oldx, oldy, oldz;
                 oldx = this.x;
@@ -648,40 +689,89 @@ namespace MUDAdventure
                 //make sure the room we are in exists and is not null
                 if (currentRoom != null)
                 {
-                    if (currentMoves > 0)
+                    if (this.isFleeing)
                     {
-                        //check the movement direction, and see if an exit is available that way.
-                        switch (dir)
+                        if (this.currentMoves > 5)
                         {
-                            case "n":
-                                if (currentRoom.NorthExit)
-                                {
-                                    this.y++;
-                                }
-                                break;
-                            case "s":
-                                if (currentRoom.SouthExit)
-                                {
-                                    this.y--;
-                                }
-                                break;
-                            case "e":
-                                if (currentRoom.EastExit)
-                                {
-                                    this.x++;
-                                }
-                                break;
-                            case "w":
-                                if (currentRoom.WestExit)
-                                {
-                                    this.x--;
-                                }
-                                break;
+                            //check the movement direction, and see if an exit is available that way.
+                            switch (dir)
+                            {
+                                case "n":
+                                    if (currentRoom.NorthExit)
+                                    {
+                                        this.y++;
+                                    }
+                                    break;
+                                case "s":
+                                    if (currentRoom.SouthExit)
+                                    {
+                                        this.y--;
+                                    }
+                                    break;
+                                case "e":
+                                    if (currentRoom.EastExit)
+                                    {
+                                        this.x++;
+                                    }
+                                    break;
+                                case "w":
+                                    if (currentRoom.WestExit)
+                                    {
+                                        this.x--;
+                                    }
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            this.OnPlayerFleeFail(new FleeFailEventArgs(this.x, this.y, this.z, this.name));
+                            this.currentMoves -= 3;
+                        }
+                    }
+                    else if (!this.isFleeing)
+                    {
+                        if (currentMoves > 0)
+                        {
+                            //check the movement direction, and see if an exit is available that way.
+                            switch (dir)
+                            {
+                                case "n":
+                                    if (currentRoom.NorthExit)
+                                    {
+                                        this.y++;
+                                    }
+                                    break;
+                                case "s":
+                                    if (currentRoom.SouthExit)
+                                    {
+                                        this.y--;
+                                    }
+                                    break;
+                                case "e":
+                                    if (currentRoom.EastExit)
+                                    {
+                                        this.x++;
+                                    }
+                                    break;
+                                case "w":
+                                    if (currentRoom.WestExit)
+                                    {
+                                        this.x--;
+                                    }
+                                    break;
+                            }
                         }
 
                         //if we have moved, let's look around the new room automatically and raise the OnPlayerMoved event
                         if (this.x != oldx || this.y != oldy || this.z != oldz)
                         {
+                            if (this.isFleeing)
+                            {
+                                rooms.TryGetValue(this.x.ToString() + "," + this.y.ToString() + "," + this.z.ToString(), out this.currentRoom);
+                                this.Look();
+                                this.OnPlayerFled(new FledEventArgs(this.x, this.y, this.z, oldx, oldy, oldz, this.name, dir));
+                                currentMoves-=5;
+                            }
                             this.Look();
 
                             this.OnPlayerMoved(new PlayerMovedEventArgs(this.x, this.y, this.z, oldx, oldy, oldz, this.name, dir));
@@ -712,6 +802,26 @@ namespace MUDAdventure
         protected virtual void OnPlayerMoved(PlayerMovedEventArgs e)
         {
             EventHandler<PlayerMovedEventArgs> handler = this.PlayerMoved;
+
+            if (handler != null)
+            {
+                handler(this, e);
+            }
+        }
+
+        protected virtual void OnPlayerFled(FledEventArgs e)
+        {
+            EventHandler<FledEventArgs> handler = this.PlayerFled;
+
+            if (handler != null)
+            {
+                handler(this, e);
+            }
+        }
+
+        protected virtual void OnPlayerFleeFail(FleeFailEventArgs e)
+        {
+            EventHandler<FleeFailEventArgs> handler = this.PlayerFleeFail;
 
             if (handler != null)
             {
@@ -825,6 +935,8 @@ namespace MUDAdventure
                     this.players[this.players.IndexOf((Player)sender)].PlayerConnected -= this.HandlePlayerConnected;
                     this.players[this.players.IndexOf((Player)sender)].PlayerMoved -= this.HandlePlayerMoved;
                     this.players[this.players.IndexOf((Player)sender)].PlayerDisconnected -= this.HandlePlayerDisconnected;
+                    this.players[this.players.IndexOf((Player)sender)].PlayerFled -= this.HandlePlayerFled;
+                    this.players[this.players.IndexOf((Player)sender)].PlayerFleeFail -= this.HandlePlayerFleeFail;
                 }
             }
         }
@@ -845,7 +957,6 @@ namespace MUDAdventure
 
         private void HandleNPCFled(object sender, FledEventArgs e)
         {
-            //TODO: add which direction player left in
             if (e.OldX == this.x && e.OldY == this.y && e.OldZ == this.z)
             {
                 this.writeToClient(e.Name + " panics and flees " + e.Direction + ".");
@@ -853,6 +964,22 @@ namespace MUDAdventure
         }
 
         private void HandleNPCFleeFail(object sender, FleeFailEventArgs e)
+        {
+            if (e.X == this.x && e.Y == this.y && e.Z == this.z)
+            {
+                this.writeToClient(e.Name + " panics and tries to flee, but can't escape.");
+            }
+        }
+
+        private void HandlePlayerFled(object sender, FledEventArgs e)
+        {
+            if (e.OldX == this.x && e.OldY == this.y && e.OldZ == this.z)
+            {
+                this.writeToClient(e.Name + " panics and flees " + e.Direction + ".");
+            }
+        }
+
+        private void HandlePlayerFleeFail(object sender, FleeFailEventArgs e)
         {
             if (e.X == this.x && e.Y == this.y && e.Z == this.z)
             {
