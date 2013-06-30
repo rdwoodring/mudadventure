@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace MUDAdventure
 {
@@ -11,6 +12,9 @@ namespace MUDAdventure
         private string name, description;
         private List<string> refNames;
         private bool isDead, inCombat;
+        private Object combatTarget;
+
+        private Object hpLock = new Object();
 
         public NPC(int spx, int spy, int spz, string n, string d, List<string> refnames, int sptime, int hp, int wimp)
         {
@@ -30,7 +34,11 @@ namespace MUDAdventure
             this.name = n;
             this.description = d;
 
-            this.refNames = refnames;
+            this.refNames = new List<string>();            
+            foreach (string refname in refnames)
+            {
+                this.refNames.Add(refname.ToLower());
+            }
 
             this.isDead = false;
             this.inCombat = false;
@@ -41,16 +49,29 @@ namespace MUDAdventure
             //TODO: implement dodge, parry, armor damage reduction or prevention
             this.inCombat = true;
 
-            this.hitpoints -= potentialdamage;
+            Monitor.TryEnter(this.hpLock);
+            try
+            {
+                this.hitpoints -= potentialdamage;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error: {0}", ex.Message);
+                Console.WriteLine("Trace: {0}", ex.StackTrace);
+            }
+            finally
+            {
+                Monitor.Exit(this.hpLock);
+            }
 
             if (this.hitpoints <= 0)
             {
                 this.Die();
-                return "An NPC falls over, dead.";
+                return "You hit an NPC, doing some damage.\r\nAn NPC falls over, dead.";
             }
             else
             {
-                return "You hit an NPC, doing some damage";
+                return "You hit an NPC, doing some damage.";
             }
         }
 
@@ -101,6 +122,12 @@ namespace MUDAdventure
         {
             get { return this.refNames; }
             set { this.refNames = value; }
+        }
+
+        public Object CombatTarget
+        {
+            get { return this.combatTarget; }
+            set { this.combatTarget = value; }
         }
     }
 }

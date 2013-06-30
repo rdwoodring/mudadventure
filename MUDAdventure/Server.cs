@@ -136,7 +136,21 @@ namespace MUDAdventure
 
                 foreach (Player player in players)
                 {
-                    player.ReceiveTime(hour);
+                    Monitor.TryEnter(player);
+
+                    try
+                    {
+                        player.ReceiveTime(hour);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Error: {0}", ex.Message);
+                        Console.WriteLine("Trace: {0}", ex.StackTrace);
+                    }
+                    finally
+                    {
+                        Monitor.Exit(player);
+                    }
                 }                
             }            
         }

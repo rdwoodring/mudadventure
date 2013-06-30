@@ -29,6 +29,7 @@ namespace MUDAdventure
         private System.Timers.Timer worldTimer;
         private int worldTime;
         private int totalMoves, currentMoves, totalHitpoints, currentHitpoints;
+        private Object combatTarget;
 
         private int timeCounter = 0; //for regenerating moves and hp
 
@@ -305,8 +306,15 @@ namespace MUDAdventure
             }
             else if (input.StartsWith("kill"))
             {
-                string args = input.Substring(5);
-                this.Kill(args.ToLower());
+                if (input.Length > 4)
+                {
+                    string args = input.Substring(5);
+                    this.Kill(args.ToLower());
+                }
+                else
+                {
+                    writeToClient("Kill who?");
+                }
             }
             else if (input.StartsWith("inf"))
             {
@@ -335,12 +343,35 @@ namespace MUDAdventure
 
         private void Kill(string args)
         {
-            //TODO: fill method with logic for attacking
-        }
+            if (!this.inCombat)
+            {
+                if (!this.isNight || this.currentRoom.LightedRoom)
+                {
+                    foreach (NPC npc in npcs)
+                    {
+                        if (npc.RefNames.Contains(args) && npc.X == this.x && npc.Y == this.y && npc.Z == this.z)
+                        {
+                            this.combatTarget = npc;
 
-        private void Attack(NPC npc)
-        {
-            
+                            npc.CombatTarget = this;
+
+                            this.inCombat = true;
+                        }
+                        else
+                        {
+                            writeToClient("That person isn't here.");
+                        }
+                    }
+                }
+                else
+                {
+                    writeToClient("It's too dark to see that person.");
+                }
+            }
+            else
+            {
+                writeToClient("You're already in a fight!");
+            }
         }
 
         private void Disconnect()
@@ -398,64 +429,132 @@ namespace MUDAdventure
                 }
                 else if (mainGame)
                 {
-                    string health = String.Empty;
-                    string moves = String.Empty;
-                    string append = String.Empty;
+                    if (!this.inCombat)
+                    {
+                        string health = String.Empty;
+                        string moves = String.Empty;
+                        string append = String.Empty;
 
-                    if (((double)this.currentHitpoints / (double)this.totalHitpoints) <= .1)
-                    {
-                        health += "HP: Awful";
-                    }
-                    else if (((double)this.currentHitpoints / (double)this.totalHitpoints) <= .25)
-                    {
-                        health += "HP: Bloodied";
-                    }
-                    else if (((double)this.currentHitpoints / (double)this.totalHitpoints) <= .4)
-                    {
-                        health += "HP: Wounded";
-                    }
-                    else if (((double)this.currentHitpoints / (double)this.totalHitpoints) <= .6)
-                    {
-                        health += "HP: Hurt";
-                    }
-                    else if ((double)(this.currentHitpoints / this.totalHitpoints) <= .75)
-                    {
-                        health += "HP: Bruised";
-                    }
-                    else if ((double)(this.currentHitpoints / this.totalHitpoints) < 1)
-                    {
-                        health += "HP: Scratched";
-                    }
+                        if (((double)this.currentHitpoints / (double)this.totalHitpoints) <= .1)
+                        {
+                            health += "HP: Awful";
+                        }
+                        else if (((double)this.currentHitpoints / (double)this.totalHitpoints) <= .25)
+                        {
+                            health += "HP: Bloodied";
+                        }
+                        else if (((double)this.currentHitpoints / (double)this.totalHitpoints) <= .4)
+                        {
+                            health += "HP: Wounded";
+                        }
+                        else if (((double)this.currentHitpoints / (double)this.totalHitpoints) <= .6)
+                        {
+                            health += "HP: Hurt";
+                        }
+                        else if ((double)(this.currentHitpoints / this.totalHitpoints) <= .75)
+                        {
+                            health += "HP: Bruised";
+                        }
+                        else if ((double)(this.currentHitpoints / this.totalHitpoints) < 1)
+                        {
+                            health += "HP: Scratched";
+                        }
 
-                    Debug.Print((((double)this.currentMoves / (double)this.totalMoves)).ToString());
+                        Debug.Print((((double)this.currentMoves / (double)this.totalMoves)).ToString());
 
-                    if (((double)this.currentMoves / (double)this.totalMoves) <= .1)
-                    {
-                        moves += "MV: Spent";
-                    }
-                    else if (((double)this.currentMoves / (double)this.totalMoves) <= .25)
-                    {
-                        moves += "MV: Exhausted";
-                    }
-                    else if (((double)this.currentMoves / (double)this.totalMoves) <= .4)
-                    {
-                        moves += "MV: Tired";
-                    }
-                    else if (((double)this.currentMoves / (double)this.totalMoves) <= .6)
-                    {
-                        moves += "MV: Weary";
-                    }
+                        if (((double)this.currentMoves / (double)this.totalMoves) <= .1)
+                        {
+                            moves += "MV: Spent";
+                        }
+                        else if (((double)this.currentMoves / (double)this.totalMoves) <= .25)
+                        {
+                            moves += "MV: Exhausted";
+                        }
+                        else if (((double)this.currentMoves / (double)this.totalMoves) <= .4)
+                        {
+                            moves += "MV: Tired";
+                        }
+                        else if (((double)this.currentMoves / (double)this.totalMoves) <= .6)
+                        {
+                            moves += "MV: Weary";
+                        }
 
-                    if (health != String.Empty)
-                    {
-                        append = health + "; " + moves;
+                        if (health != String.Empty)
+                        {
+                            append = health + "; " + moves;
+                        }
+                        else
+                        {
+                            append = health + moves;
+                        }
+
+                        buffer = this.encoder.GetBytes(message + "\r\n" + append + ">");
                     }
                     else
                     {
-                        append = health + moves;
-                    }
+                        string health = String.Empty;
+                        string moves = String.Empty;
+                        string append = String.Empty;
 
-                    buffer = this.encoder.GetBytes(message + "\r\n" + append + ">");
+                        if (((double)this.currentHitpoints / (double)this.totalHitpoints) <= .1)
+                        {
+                            health += "HP: Awful";
+                        }
+                        else if (((double)this.currentHitpoints / (double)this.totalHitpoints) <= .25)
+                        {
+                            health += "HP: Bloodied";
+                        }
+                        else if (((double)this.currentHitpoints / (double)this.totalHitpoints) <= .4)
+                        {
+                            health += "HP: Wounded";
+                        }
+                        else if (((double)this.currentHitpoints / (double)this.totalHitpoints) <= .6)
+                        {
+                            health += "HP: Hurt";
+                        }
+                        else if ((double)(this.currentHitpoints / this.totalHitpoints) <= .75)
+                        {
+                            health += "HP: Bruised";
+                        }
+                        else if ((double)(this.currentHitpoints / this.totalHitpoints) < 1)
+                        {
+                            health += "HP: Scratched";
+                        }
+                        else
+                        {
+                            health += "HP: Healthy";
+                        }
+
+                        Debug.Print((((double)this.currentMoves / (double)this.totalMoves)).ToString());
+
+                        if (((double)this.currentMoves / (double)this.totalMoves) <= .1)
+                        {
+                            moves += "MV: Spent";
+                        }
+                        else if (((double)this.currentMoves / (double)this.totalMoves) <= .25)
+                        {
+                            moves += "MV: Exhausted";
+                        }
+                        else if (((double)this.currentMoves / (double)this.totalMoves) <= .4)
+                        {
+                            moves += "MV: Tired";
+                        }
+                        else if (((double)this.currentMoves / (double)this.totalMoves) <= .6)
+                        {
+                            moves += "MV: Weary";
+                        }
+
+                        if (health != String.Empty && moves != String.Empty)
+                        {
+                            append = health + "; " + moves;
+                        }
+                        else
+                        {
+                            append = health + moves;
+                        }
+
+                        buffer = this.encoder.GetBytes(message + "\r\n" + append + ">");
+                    }
                 }
                 else
                 {
@@ -494,69 +593,74 @@ namespace MUDAdventure
 
         private void Move(string dir)
         {
-            //TODO: add movement logic here
-
-            int oldx, oldy, oldz;
-            oldx = this.x;
-            oldy = this.y;
-            oldz = this.z;
-
-            //getting current room.
-            this.rooms.TryGetValue(this.x + "," + this.y + "," + this.z, out currentRoom);
-
-            //make sure the room we are in exists and is not null
-            if (currentRoom != null)
+            if (!this.inCombat)
             {
-                if (currentMoves > 0)
+                int oldx, oldy, oldz;
+                oldx = this.x;
+                oldy = this.y;
+                oldz = this.z;
+
+                //getting current room.
+                this.rooms.TryGetValue(this.x + "," + this.y + "," + this.z, out currentRoom);
+
+                //make sure the room we are in exists and is not null
+                if (currentRoom != null)
                 {
-                    //check the movement direction, and see if an exit is available that way.
-                    switch (dir)
+                    if (currentMoves > 0)
                     {
-                        case "n":
-                            if (currentRoom.NorthExit)
-                            {
-                                this.y++;
-                            }
-                            break;
-                        case "s":
-                            if (currentRoom.SouthExit)
-                            {
-                                this.y--;
-                            }
-                            break;
-                        case "e":
-                            if (currentRoom.EastExit)
-                            {
-                                this.x++;
-                            }
-                            break;
-                        case "w":
-                            if (currentRoom.WestExit)
-                            {
-                                this.x--;
-                            }
-                            break;
-                    }
+                        //check the movement direction, and see if an exit is available that way.
+                        switch (dir)
+                        {
+                            case "n":
+                                if (currentRoom.NorthExit)
+                                {
+                                    this.y++;
+                                }
+                                break;
+                            case "s":
+                                if (currentRoom.SouthExit)
+                                {
+                                    this.y--;
+                                }
+                                break;
+                            case "e":
+                                if (currentRoom.EastExit)
+                                {
+                                    this.x++;
+                                }
+                                break;
+                            case "w":
+                                if (currentRoom.WestExit)
+                                {
+                                    this.x--;
+                                }
+                                break;
+                        }
 
-                    //if we have moved, let's look around the new room automatically and raise the OnPlayerMoved event
-                    if (this.x != oldx || this.y != oldy || this.z != oldz)
-                    {
-                        this.Look();
+                        //if we have moved, let's look around the new room automatically and raise the OnPlayerMoved event
+                        if (this.x != oldx || this.y != oldy || this.z != oldz)
+                        {
+                            this.Look();
 
-                        this.OnPlayerMoved(new PlayerMovedEventArgs(this.x, this.y, oldx, oldy, this.name, dir));
-                        this.currentMoves--;
+                            this.OnPlayerMoved(new PlayerMovedEventArgs(this.x, this.y, oldx, oldy, this.name, dir));
+                            this.currentMoves--;
+                        }
+                        //if we haven't moved, that means there wasn't an available exit in that direction.
+                        //let's tell the stupid player with an message
+                        else
+                        {
+                            writeToClient("You cannot go that direction.");
+                        }
                     }
-                    //if we haven't moved, that means there wasn't an available exit in that direction.
-                    //let's tell the stupid player with an message
                     else
                     {
-                        writeToClient("You cannot go that direction.");
+                        writeToClient("You are too tired to move.");
                     }
                 }
-                else
-                {
-                    writeToClient("You are too tired to move.");
-                }
+            }
+            else
+            {
+                writeToClient("No way! You're in the middle of a fight!");
             }
         }
 
@@ -647,9 +751,19 @@ namespace MUDAdventure
                 }
             }
 
-            if (inCombat)
+            if (this.inCombat)
             {
+                int index = this.npcs.IndexOf((NPC)combatTarget);
                 //call attack method depending upon speed.
+                if (!this.npcs[npcs.IndexOf((NPC)combatTarget)].IsDead)
+                {
+                    this.writeToClient(this.npcs[npcs.IndexOf((NPC)combatTarget)].ReceiveAttack(2));
+                }
+                else if (this.npcs[npcs.IndexOf((NPC)combatTarget)].IsDead)
+                {
+                    this.combatTarget = null;
+                    this.inCombat = false;
+                }
             }
         }
     }
