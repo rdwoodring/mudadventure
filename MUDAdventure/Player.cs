@@ -120,9 +120,12 @@ namespace MUDAdventure
                 Monitor.TryEnter(playerlock, 5000);
                 try
                 {
-                    player.PlayerConnected += this.HandlePlayerConnected;
-                    player.PlayerMoved += this.HandlePlayerMoved;
-                    player.PlayerDisconnected += this.HandlePlayerDisconnected;
+                    if (player != this) //don't need to subscribe to events about ourselves, do we?
+                    {
+                        player.PlayerConnected += this.HandlePlayerConnected;
+                        player.PlayerMoved += this.HandlePlayerMoved;
+                        player.PlayerDisconnected += this.HandlePlayerDisconnected;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -640,10 +643,7 @@ namespace MUDAdventure
                 int oldx, oldy, oldz;
                 oldx = this.x;
                 oldy = this.y;
-                oldz = this.z;
-
-                //getting current room.
-                this.rooms.TryGetValue(this.x + "," + this.y + "," + this.z, out this.currentRoom);
+                oldz = this.z;                
 
                 //make sure the room we are in exists and is not null
                 if (currentRoom != null)
@@ -686,6 +686,9 @@ namespace MUDAdventure
 
                             this.OnPlayerMoved(new PlayerMovedEventArgs(this.x, this.y, this.z, oldx, oldy, oldz, this.name, dir));
                             this.currentMoves--;
+
+                            //getting current room.
+                            this.rooms.TryGetValue(this.x + "," + this.y + "," + this.z, out this.currentRoom);
                         }
                         //if we haven't moved, that means there wasn't an available exit in that direction.
                         //let's tell the stupid player with an message
