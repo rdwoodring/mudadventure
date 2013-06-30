@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Timers;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 
 namespace MUDAdventure
 {
@@ -12,6 +13,7 @@ namespace MUDAdventure
     {
         public event EventHandler<PlayerMovedEventArgs> NPCMoved;
         public event EventHandler<FledEventArgs> NPCFled;
+        public event EventHandler<FleeFailEventArgs> NPCFleeFail;
 
         private int spawnX, spawnY, spawnZ, x, y, z, spawntime, totalHitpoints, currentHitpoints, wimpy;
         private string name, description;
@@ -221,13 +223,15 @@ namespace MUDAdventure
         {
             if (this.inCombat)
             {
+                Debug.Print((((double)this.currentHitpoints / (double)this.totalHitpoints)*100).ToString());
+
                 if (this.wimpy >= ((double)this.currentHitpoints / (double)this.totalHitpoints)*100)
                 {
                     //fleeing is not guaranteed success.  there is a one in three chance that fleeing will even be successful
                     //on top of that, an exit is chosen randomly, so it is also possible that a non-viable exit will be chosen
                     //basically, it ain't good news
 
-                    int flee = rand.Next(1, 3);
+                    int flee = rand.Next(1, 2);
                     if (flee == 1) //the flee was successful
                     {
                         int direction = rand.Next(1, 4);
@@ -249,7 +253,11 @@ namespace MUDAdventure
                                 this.isFleeing = true;
                                 this.Move("w");
                                 break;
-                        }                        
+                        }
+                    }
+                    else
+                    {
+                        this.OnNPCFleeFail(new FleeFailEventArgs(this.x, this.y, this.z, this.name));
                     }
                 }
                 else
@@ -285,6 +293,16 @@ namespace MUDAdventure
         protected virtual void OnNPCFled(FledEventArgs e)
         {
             EventHandler<FledEventArgs> handler = this.NPCFled;
+
+            if (handler != null)
+            {
+                handler(this, e);
+            }
+        }
+
+        protected virtual void OnNPCFleeFail(FleeFailEventArgs e)
+        {
+            EventHandler<FleeFailEventArgs> handler = this.NPCFleeFail;
 
             if (handler != null)
             {

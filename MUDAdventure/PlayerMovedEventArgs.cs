@@ -51,6 +51,12 @@ namespace MUDAdventure
             set { this.y = value; }
         }
 
+        public int Z
+        {
+            get { return this.z; }
+            set { this.z = value; }
+        }
+
         public int OldX
         {
             get { return this.oldx; }
@@ -61,6 +67,12 @@ namespace MUDAdventure
         {
             get { return this.oldy; }
             set { this.oldy = value; }
+        }
+
+        public int OldZ
+        {
+            get { return this.oldz; }
+            set { this.oldz = value; }
         }
 
         public string Name

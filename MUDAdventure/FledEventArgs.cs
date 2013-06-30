@@ -63,6 +63,12 @@ namespace MUDAdventure
             set { this.oldy = value; }
         }
 
+        public int OldZ
+        {
+            get { return this.oldz; }
+            set { this.oldz = value; }
+        }
+
         public string Name
         {
             get { return this.name; }

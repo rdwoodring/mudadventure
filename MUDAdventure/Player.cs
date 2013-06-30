@@ -114,6 +114,48 @@ namespace MUDAdventure
             //TODO: if passwords match, allow entrance
             this.enteringPassword = false;
 
+            //subscribing to events for players that are already logged in
+            foreach (Player player in players)
+            {
+                Monitor.TryEnter(playerlock, 5000);
+                try
+                {
+                    player.PlayerConnected += this.HandlePlayerConnected;
+                    player.PlayerMoved += this.HandlePlayerMoved;
+                    player.PlayerDisconnected += this.HandlePlayerDisconnected;
+                }
+                catch (Exception ex)
+                {
+                    writeToClient("Error: " + ex.Message);
+                    writeToClient("Trace: " + ex.StackTrace);
+                }
+                finally
+                {
+                    Monitor.Exit(playerlock);
+                }
+            }
+
+            //subscribing to events for NPCs
+            foreach (NPC npc in npcs)
+            {
+                Monitor.TryEnter(npclock, 5000);
+                try
+                {
+                    npc.NPCFled += this.HandleNPCFled;
+                    npc.NPCMoved += this.HandleNPCMoved;
+                    npc.NPCFleeFail += this.HandleNPCFleeFail;
+                }
+                catch (Exception ex)
+                {
+                    writeToClient("Error: " + ex.Message);
+                    writeToClient("Trace: " + ex.StackTrace);
+                }
+                finally
+                {
+                    Monitor.Exit(npclock);
+                }
+            }
+
             this.mainGame = true;            
 
             //TODO: replace with loading player's location from DB
@@ -462,8 +504,6 @@ namespace MUDAdventure
                             health += "HP: Scratched";
                         }
 
-                        Debug.Print((((double)this.currentMoves / (double)this.totalMoves)).ToString());
-
                         if (((double)this.currentMoves / (double)this.totalMoves) <= .1)
                         {
                             moves += "MV: Spent";
@@ -759,13 +799,13 @@ namespace MUDAdventure
 
         private void HandlePlayerMoved(object sender, PlayerMovedEventArgs e)
         {
-            if( e.X == this.x && e.Y == this.y)
+            if( e.X == this.x && e.Y == this.y && e.Z == this.z)
             {
                 this.writeToClient(e.Name + " enters the room.");
             }
 
             //TODO: add which direction player left in
-            if (e.OldX == this.x && e.OldY == this.y)
+            if (e.OldX == this.x && e.OldY == this.y && e.OldZ == this.z)
             {
                 this.writeToClient(e.Name + " heads " + e.Direction + ".");
             }
@@ -783,6 +823,37 @@ namespace MUDAdventure
                     this.players[this.players.IndexOf((Player)sender)].PlayerMoved -= this.HandlePlayerMoved;
                     this.players[this.players.IndexOf((Player)sender)].PlayerDisconnected -= this.HandlePlayerDisconnected;
                 }
+            }
+        }
+
+        private void HandleNPCMoved(object sender, PlayerMovedEventArgs e)
+        {
+            if (e.X == this.x && e.Y == this.y && e.Z == this.z)
+            {
+                this.writeToClient(e.Name + " enters the room.");
+            }
+
+            //TODO: add which direction player left in
+            if (e.OldX == this.x && e.OldY == this.y && e.OldZ == this.z)
+            {
+                this.writeToClient(e.Name + " heads " + e.Direction + ".");
+            }
+        }
+
+        private void HandleNPCFled(object sender, FledEventArgs e)
+        {
+            //TODO: add which direction player left in
+            if (e.OldX == this.x && e.OldY == this.y && e.OldZ == this.z)
+            {
+                this.writeToClient(e.Name + " panics and flees " + e.Direction + ".");
+            }
+        }
+
+        private void HandleNPCFleeFail(object sender, FleeFailEventArgs e)
+        {
+            if (e.X == this.x && e.Y == this.y && e.Z == this.z)
+            {
+                this.writeToClient(e.Name + " panics and tries to flee, but can't escape.");
             }
         }
 
