@@ -24,6 +24,7 @@ namespace MUDAdventure
         private Dictionary<string, Room> rooms;
         private Room currentRoom;
         private Random rand = new Random();
+        private int respawnCounter;
 
         private Object hpLock = new Object();
 
@@ -108,6 +109,11 @@ namespace MUDAdventure
             this.isDead = true;
             this.inCombat = false;
             this.combatTarget = null;
+
+            //TODO: figure out a better way to do this...
+            this.x = -9999;
+            this.y = -9999;
+            this.z = -9999;
         }
 
         public bool IsDead
@@ -214,6 +220,8 @@ namespace MUDAdventure
                     else if (this.isFleeing) //yup, someone's running away
                     {
                         this.OnNPCFled(new FledEventArgs(this.x, this.y, this.z, oldx, oldy, oldz, this.name, dir));
+                        this.combatTarget = null;
+                        this.inCombat = false;
                     }
                 }
             }
@@ -262,16 +270,34 @@ namespace MUDAdventure
                 }
                 else
                 {
-                    //TODO: call attack method depending upon speed.
-                    if (!this.players[players.IndexOf((Player)combatTarget)].IsDead)
+                    if (this.combatTarget != null)
                     {
-                        this.players[players.IndexOf((Player)combatTarget)].ReceiveAttack(2);
+                        if (!this.players[players.IndexOf((Player)combatTarget)].IsDead)
+                        {
+                            this.players[players.IndexOf((Player)combatTarget)].ReceiveAttack(2);
+                        }
+                        else if (this.players[players.IndexOf((Player)combatTarget)].IsDead)
+                        {
+                            this.inCombat = false;
+                            this.combatTarget = null;
+                        }
                     }
-                    else if (this.players[players.IndexOf((Player)combatTarget)].IsDead)
-                    {
-                        this.inCombat = false;
-                        this.combatTarget = null;
-                    }
+                }
+            }
+            else if (this.isDead)
+            {
+                this.respawnCounter++;
+
+                if ((this.respawnCounter * 100) >= this.spawntime)
+                {
+                    this.isDead = false;
+                    this.x = this.spawnX;
+                    this.y = this.spawnY;
+                    this.z = this.spawnZ;
+
+                    this.currentHitpoints = this.totalHitpoints;
+
+                    this.respawnCounter = 0;
                 }
             }
             else

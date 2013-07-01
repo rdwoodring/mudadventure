@@ -42,22 +42,6 @@ namespace MUDAdventure
             this.time = 0;
             this.hour = 0; 
 
-            //TODO: add code for loading rooms from DB or XML file
-            //rooms.Add("123", new Room()); etc., etc.
-            //for now let's just create some rooms manually for testing purposes.
-            /*
-            Room room = new Room("A Starting Place", "This is the starting room.  It is completely empty.", true, false, true, false, 0, 0, 0, true);
-            this.rooms.Add(room.X.ToString() + "," + room.Y.ToString() + "," + room.Z.ToString(), room);
-
-            room = new Room("North of A Starting Place", "Well, you've moved to a room north of the starting room... but it's still completely empty.", false, true, true, false, 0, 1, 0, false);
-            this.rooms.Add(room.X.ToString() + "," + room.Y.ToString() + "," + room.Z.ToString(), room);
-
-            room = new Room("Northeast of A Starting Place", "Woohoo!  Just kidding... this room is still completely empty.", false, true, false, true, 1, 1, 0, false);
-            this.rooms.Add(room.X.ToString() + "," + room.Y.ToString() + "," + room.Z.ToString(), room);
-
-            room = new Room("East of A Starting Place", "Nothing here.  Move along, move along.", true, false, false, true, 1, 0, 0, false);
-            this.rooms.Add(room.X.ToString() + "," + room.Y.ToString() + "," + room.Z.ToString(), room);
-             * */
             Console.WriteLine("Attempting to read Rooms.xml...");
             this.ReadRoomFile();
             if (rooms.Count > 0)
@@ -76,12 +60,6 @@ namespace MUDAdventure
             //file in the debug folder, so we'll specify elsewhere.
             if (File.Exists(@"..\..\Rooms.xml"))
             {
-                /*using (StreamReader sr = new StreamReader(@"..\..\Rooms.xml"))
-                {
-                    //string contents = sr.ReadToEnd();
-                    //return contents;
-                }*/
-
                 XmlDocument doc = new XmlDocument();
                 doc.Load(@"..\..\Rooms.xml");
 
@@ -92,9 +70,6 @@ namespace MUDAdventure
                     bool nexit, sexit, wexit, eexit, lighted;
                     int x, y, z;
 
-                    //Debug.Print(xmlrooms[i].HasChildNodes.ToString());
-                    //Debug.Print(xmlrooms[i].ChildNodes.Count.ToString());
-                    //Debug.Print(xmlrooms[i].FirstChild.InnerText);
                     name = xmlrooms[i].ChildNodes[0].InnerText;
                     desc = xmlrooms[i].ChildNodes[1].InnerText;
                     nexit = bool.Parse(xmlrooms[i].ChildNodes[2].InnerText);
@@ -113,54 +88,6 @@ namespace MUDAdventure
             else
             {
                 Console.WriteLine("Couldn't locate the Rooms.xml file. Make sure that it is named corrected and in the correct directory.");
-                //return null;
-            }
-        }
-
-        private void ParseRoomsXml(string roomsXml)
-        {
-            using (XmlReader reader = XmlReader.Create(new StringReader(roomsXml)))
-            {
-                
-                while (!reader.EOF)
-                {
-                    string name, desc;
-                    bool nexit, sexit, wexit, eexit, lighted;
-                    int x, y, z;
-                
-                    reader.ReadToFollowing("name");
-                    name = reader.ReadElementContentAsString();
-
-                    reader.ReadToFollowing("description");
-                    desc = reader.ReadElementContentAsString();
-
-                    reader.ReadToFollowing("nexit");
-                    nexit = reader.ReadElementContentAsBoolean();
-
-                    reader.ReadToFollowing("sexit");
-                    sexit = reader.ReadElementContentAsBoolean();
-
-                    reader.ReadToFollowing("eexit");
-                    eexit = reader.ReadElementContentAsBoolean();
-
-                    reader.ReadToFollowing("wexit");
-                    wexit = reader.ReadElementContentAsBoolean();
-                    
-                    reader.ReadToFollowing("x");
-                    x = reader.ReadElementContentAsInt();
-
-                    reader.ReadToFollowing("y");
-                    y = reader.ReadElementContentAsInt();
-
-                    reader.ReadToFollowing("z");
-                    z = reader.ReadElementContentAsInt();
-                    
-                    reader.ReadToFollowing("lighted");
-                    lighted = reader.ReadElementContentAsBoolean();
-
-                    Room room = new Room(name, desc, nexit, sexit, eexit, wexit, x, y, z, lighted);
-                    this.rooms.Add(x + "," + y + "," + z, room);
-                }
             }
         }
 

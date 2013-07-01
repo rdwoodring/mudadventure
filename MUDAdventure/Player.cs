@@ -565,7 +565,7 @@ namespace MUDAdventure
                             moves += "MV: Weary";
                         }
 
-                        if (health != String.Empty)
+                        if (health != String.Empty && moves != String.Empty)
                         {
                             append = health + "; " + moves;
                         }
@@ -960,6 +960,8 @@ namespace MUDAdventure
             if (e.OldX == this.x && e.OldY == this.y && e.OldZ == this.z)
             {
                 this.writeToClient(e.Name + " panics and flees " + e.Direction + ".");
+                this.combatTarget = null;
+                this.inCombat = false;
             }
         }
 
@@ -1005,15 +1007,17 @@ namespace MUDAdventure
 
             if (this.inCombat)
             {
-                //call attack method depending upon speed.
-                if (!this.npcs[npcs.IndexOf((NPC)combatTarget)].IsDead)
+                if (this.combatTarget != null)
                 {
-                    this.writeToClient(this.npcs[npcs.IndexOf((NPC)combatTarget)].ReceiveAttack(2));
-                }
-                else if (this.npcs[npcs.IndexOf((NPC)combatTarget)].IsDead)
-                {
-                    this.combatTarget = null;
-                    this.inCombat = false;
+                    if (!this.npcs[npcs.IndexOf((NPC)combatTarget)].IsDead)
+                    {
+                        this.writeToClient(this.npcs[npcs.IndexOf((NPC)combatTarget)].ReceiveAttack(2));
+                    }
+                    else if (this.npcs[npcs.IndexOf((NPC)combatTarget)].IsDead)
+                    {
+                        this.combatTarget = null;
+                        this.inCombat = false;
+                    }
                 }
             }
         }
