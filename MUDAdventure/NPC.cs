@@ -14,6 +14,7 @@ namespace MUDAdventure
         public event EventHandler<PlayerMovedEventArgs> NPCMoved;
         public event EventHandler<FledEventArgs> NPCFled;
         public event EventHandler<FleeFailEventArgs> NPCFleeFail;
+        public event EventHandler<AttackedAndHitEventArgs> NPCAttackedAndHit;
 
         private int spawnX, spawnY, spawnZ, x, y, z, spawntime, totalHitpoints, currentHitpoints, wimpy;
         private string name, description;
@@ -72,7 +73,7 @@ namespace MUDAdventure
             this.players = playerList;            
         }
 
-        public string ReceiveAttack(int potentialdamage)
+        public void ReceiveAttack(int potentialdamage, string attackerName)
         {
             //TODO: implement dodge, parry, armor damage reduction or prevention
             this.inCombat = true;
@@ -95,11 +96,11 @@ namespace MUDAdventure
             if (this.currentHitpoints <= 0)
             {
                 this.Die();
-                return "You hit an NPC, doing some damage.\r\nAn NPC falls over, dead.";
+                //return "You hit an NPC, doing some damage.\r\nAn NPC falls over, dead.";
             }
             else
             {
-                return "You hit an NPC, doing some damage.";
+                this.OnNPCAttackedAndHit(new AttackedAndHitEventArgs(attackerName, this.name, this.x, this.y, this.z));
             }
         }
 
@@ -235,7 +236,7 @@ namespace MUDAdventure
 
                 if (this.wimpy >= ((double)this.currentHitpoints / (double)this.totalHitpoints)*100)
                 {
-                    //fleeing is not guaranteed success.  there is a one in three chance that fleeing will even be successful
+                    //fleeing is not guaranteed success.  there is a one in two chance that fleeing will even be successful
                     //on top of that, an exit is chosen randomly, so it is also possible that a non-viable exit will be chosen
                     //basically, it ain't good news
 
@@ -329,6 +330,16 @@ namespace MUDAdventure
         protected virtual void OnNPCFleeFail(FleeFailEventArgs e)
         {
             EventHandler<FleeFailEventArgs> handler = this.NPCFleeFail;
+
+            if (handler != null)
+            {
+                handler(this, e);
+            }
+        }
+
+        protected virtual void OnNPCAttackedAndHit(AttackedAndHitEventArgs e)
+        {
+            EventHandler<AttackedAndHitEventArgs> handler = this.NPCAttackedAndHit;
 
             if (handler != null)
             {

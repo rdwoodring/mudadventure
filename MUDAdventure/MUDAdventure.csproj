@@ -43,6 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AttackedAndHitEventArgs.cs" />
     <Compile Include="FledEventArgs.cs" />
     <Compile Include="FleeFailEventArgs.cs" />
     <Compile Include="NPC.cs" />

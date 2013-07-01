@@ -153,6 +153,7 @@ namespace MUDAdventure
                     npc.NPCFled += this.HandleNPCFled;
                     npc.NPCMoved += this.HandleNPCMoved;
                     npc.NPCFleeFail += this.HandleNPCFleeFail;
+                    npc.NPCAttackedAndHit += this.HandleNPCAttackedAndHit;
                 }
                 catch (Exception ex)
                 {
@@ -989,6 +990,22 @@ namespace MUDAdventure
             }
         }
 
+        private void HandleNPCAttackedAndHit(object sender, AttackedAndHitEventArgs e)
+        {
+            if (e.X == this.x && e.Y == this.y && e.Z == this.z)
+            {
+                if (e.AttackerName == this.name)
+                {
+                    writeToClient("You hit " + e.DefenderName + ", doing some damage.");
+                }
+                else
+                {
+                    writeToClient(e.AttackerName + " hits " + e.DefenderName + ", doing some damage.");
+                }
+            }
+
+        }
+
         private void OnTimedEvent(object sender, ElapsedEventArgs e)
         {
             this.timeCounter++;
@@ -1011,7 +1028,7 @@ namespace MUDAdventure
                 {
                     if (!this.npcs[npcs.IndexOf((NPC)combatTarget)].IsDead)
                     {
-                        this.writeToClient(this.npcs[npcs.IndexOf((NPC)combatTarget)].ReceiveAttack(2));
+                        this.npcs[npcs.IndexOf((NPC)combatTarget)].ReceiveAttack(2, this.name);
                     }
                     else if (this.npcs[npcs.IndexOf((NPC)combatTarget)].IsDead)
                     {
