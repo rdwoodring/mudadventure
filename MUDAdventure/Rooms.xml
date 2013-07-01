@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<!--
+
+("East of A Starting Place", "Nothing here.  Move along, move along.", true, false, false, true, 1, 0, 0, false);
+-->
+<rooms>
+  <room>
+    <name>A Starting Place</name>
+    <description>This is the starting room.  It is completely empty.</description>
+    <nexit>true</nexit>
+    <sexit>false</sexit>
+    <eexit>true</eexit>
+    <wexit>false</wexit>
+    <x>0</x>
+    <y>0</y>
+    <z>0</z>
+    <lighted>true</lighted>
+  </room>
+  
+  <room>
+    <name>North of a Starting Place</name>
+    <description>Well, you've moved to a room north of the starting room... but it's still completely empty.</description>
+    <nexit>false</nexit>
+    <sexit>true</sexit>
+    <eexit>true</eexit>
+    <wexit>false</wexit>
+    <x>0</x>
+    <y>1</y>
+    <z>0</z>
+    <lighted>false</lighted>
+  </room>
+
+  <room>
+    <name>Northeast of A Starting Place</name>
+    <description>Woohoo!  Just kidding... this room is still completely empty.</description>
+    <nexit>false</nexit>
+    <sexit>true</sexit>
+    <eexit>false</eexit>
+    <wexit>true</wexit>
+    <x>1</x>
+    <y>1</y>
+    <z>0</z>
+    <lighted>false</lighted>
+  </room>
+
+  <room>
+    <name>East of A Starting Place</name>
+    <description>Nothing here.  Move along, move along.</description>
+    <nexit>true</nexit>
+    <sexit>false</sexit>
+    <eexit>false</eexit>
+    <wexit>true</wexit>
+    <x>1</x>
+    <y>0</y>
+    <z>0</z>
+    <lighted>false</lighted>
+  </room>
+</rooms>
