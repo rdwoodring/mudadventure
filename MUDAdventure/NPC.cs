@@ -15,6 +15,7 @@ namespace MUDAdventure
         public event EventHandler<FledEventArgs> NPCFled;
         public event EventHandler<FleeFailEventArgs> NPCFleeFail;
         public event EventHandler<AttackedAndHitEventArgs> NPCAttackedAndHit;
+        public event EventHandler<DiedEventArgs> NPCDied;
 
         private int spawnX, spawnY, spawnZ, x, y, z, spawntime, totalHitpoints, currentHitpoints, wimpy;
         private string name, description;
@@ -110,6 +111,8 @@ namespace MUDAdventure
             this.isDead = true;
             this.inCombat = false;
             this.combatTarget = null;
+
+            this.OnNPCDied(new DiedEventArgs(this.name, this.x, this.y, this.z));
 
             //TODO: figure out a better way to do this...
             this.x = -9999;
@@ -275,7 +278,7 @@ namespace MUDAdventure
                     {
                         if (!this.players[players.IndexOf((Player)combatTarget)].IsDead)
                         {
-                            this.players[players.IndexOf((Player)combatTarget)].ReceiveAttack(2);
+                            this.players[players.IndexOf((Player)combatTarget)].ReceiveAttack(2, this.name);
                         }
                         else if (this.players[players.IndexOf((Player)combatTarget)].IsDead)
                         {
@@ -340,6 +343,16 @@ namespace MUDAdventure
         protected virtual void OnNPCAttackedAndHit(AttackedAndHitEventArgs e)
         {
             EventHandler<AttackedAndHitEventArgs> handler = this.NPCAttackedAndHit;
+
+            if (handler != null)
+            {
+                handler(this, e);
+            }
+        }
+
+        protected virtual void OnNPCDied(DiedEventArgs e)
+        {
+            EventHandler<DiedEventArgs> handler = this.NPCDied;
 
             if (handler != null)
             {

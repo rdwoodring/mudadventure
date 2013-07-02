@@ -44,6 +44,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AttackedAndHitEventArgs.cs" />
+    <Compile Include="DiedEventArgs.cs" />
     <Compile Include="FledEventArgs.cs" />
     <Compile Include="FleeFailEventArgs.cs" />
     <Compile Include="NPC.cs" />

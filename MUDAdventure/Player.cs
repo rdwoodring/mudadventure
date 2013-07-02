@@ -18,6 +18,7 @@ namespace MUDAdventure
         public event EventHandler<PlayerDisconnectedEventArgs> PlayerDisconnected;
         public event EventHandler<FledEventArgs> PlayerFled;
         public event EventHandler<FleeFailEventArgs> PlayerFleeFail;
+        public event EventHandler<AttackedAndHitEventArgs> PlayerAttackedAndHit;
         
         private string name;
         private TcpClient tcpClient;
@@ -131,6 +132,7 @@ namespace MUDAdventure
                         player.PlayerDisconnected += this.HandlePlayerDisconnected;
                         player.PlayerFled += this.HandlePlayerFled;
                         player.PlayerFleeFail += this.HandlePlayerFleeFail;
+                        player.PlayerAttackedAndHit += this.HandlePlayerAttackedAndHit;
                     }
                 }
                 catch (Exception ex)
@@ -154,6 +156,7 @@ namespace MUDAdventure
                     npc.NPCMoved += this.HandleNPCMoved;
                     npc.NPCFleeFail += this.HandleNPCFleeFail;
                     npc.NPCAttackedAndHit += this.HandleNPCAttackedAndHit;
+                    npc.NPCDied += this.HandleNPCDied;
                 }
                 catch (Exception ex)
                 {
@@ -484,6 +487,16 @@ namespace MUDAdventure
             this.tcpClient.Close();
 
             this.OnPlayerDisconnected(new PlayerDisconnectedEventArgs(this.name));
+        }
+
+        protected virtual void OnPlayerAttackedAndHit(AttackedAndHitEventArgs e)
+        {
+            EventHandler<AttackedAndHitEventArgs> handler = this.PlayerAttackedAndHit;
+
+            if (handler != null)
+            {
+                handler(this, e);
+            }
         }
 
         protected virtual void OnPlayerConnected(PlayerConnectedEventArgs e)
@@ -830,7 +843,7 @@ namespace MUDAdventure
             }
         }
 
-        public void ReceiveAttack(int potentialdamage)
+        public void ReceiveAttack(int potentialdamage, string attackername)
         {
             //TODO: implement dodge, parry, armor damage reduction or prevention
             this.inCombat = true;
@@ -853,11 +866,12 @@ namespace MUDAdventure
             if (this.currentHitpoints <= 0)
             {
                 this.Die();
-                writeToClient("An NPC hits you, doing some damage.\r\nYou are dead.");
+                writeToClient(attackername + " hits you, doing some damage.\r\nYou are dead.");
             }
             else
             {
-                writeToClient("An NPC hits you, doing some damage.");
+                writeToClient(attackername + " hits you, doing some damage.\r\n");
+                this.OnPlayerAttackedAndHit(new AttackedAndHitEventArgs(attackername, this.name, this.x, this.y, this.z));
             }
         }
 
@@ -960,7 +974,7 @@ namespace MUDAdventure
         {
             if (e.OldX == this.x && e.OldY == this.y && e.OldZ == this.z)
             {
-                this.writeToClient(e.Name + " panics and flees " + e.Direction + ".");
+                this.writeToClient(e.Name + " panics and flees " + e.Direction + ".\r\n");
                 this.combatTarget = null;
                 this.inCombat = false;
             }
@@ -970,7 +984,7 @@ namespace MUDAdventure
         {
             if (e.X == this.x && e.Y == this.y && e.Z == this.z)
             {
-                this.writeToClient(e.Name + " panics and tries to flee, but can't escape.");
+                this.writeToClient(e.Name + " panics and tries to flee, but can't escape.\r\n");
             }
         }
 
@@ -978,7 +992,7 @@ namespace MUDAdventure
         {
             if (e.OldX == this.x && e.OldY == this.y && e.OldZ == this.z)
             {
-                this.writeToClient(e.Name + " panics and flees " + e.Direction + ".");
+                this.writeToClient(e.Name + " panics and flees " + e.Direction + ".\r\n");
             }
         }
 
@@ -986,7 +1000,7 @@ namespace MUDAdventure
         {
             if (e.X == this.x && e.Y == this.y && e.Z == this.z)
             {
-                this.writeToClient(e.Name + " panics and tries to flee, but can't escape.");
+                this.writeToClient(e.Name + " panics and tries to flee, but can't escape.\r\n");
             }
         }
 
@@ -996,14 +1010,42 @@ namespace MUDAdventure
             {
                 if (e.AttackerName == this.name)
                 {
-                    writeToClient("You hit " + e.DefenderName + ", doing some damage.");
+                    this.writeToClient("You hit " + e.DefenderName + ", doing some damage.\r\n");
                 }
                 else
                 {
-                    writeToClient(e.AttackerName + " hits " + e.DefenderName + ", doing some damage.");
+                    this.writeToClient(e.AttackerName + " hits " + e.DefenderName + ", doing some damage.\r\n");
                 }
             }
 
+        }
+
+        private void HandlePlayerAttackedAndHit(object sender, AttackedAndHitEventArgs e)
+        {
+            if (e.X == this.x && e.Y == this.y && e.Z == this.z)
+            {
+                if (e.AttackerName == this.name)
+                {
+                    this.writeToClient("You hit " + e.DefenderName + ", doing some damage.\r\n\r\n");
+                }
+                else
+                {
+                    this.writeToClient(e.AttackerName + " hits " + e.DefenderName + ", doing some damage.\r\n");
+                }
+            }
+        }
+
+        private void HandleNPCDied(object sender, DiedEventArgs e)
+        {
+            if (e.X == this.x && e.Y == this.y && e.Z == this.z)
+            {
+                if (sender == this.combatTarget)
+                {
+                    this.combatTarget = null;
+                    this.inCombat = false;
+                    this.writeToClient(e.DefenderName + " collapsed... DEAD!\r\n");
+                }
+            }
         }
 
         private void OnTimedEvent(object sender, ElapsedEventArgs e)
