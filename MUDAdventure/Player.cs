@@ -164,6 +164,7 @@ namespace MUDAdventure
                     npc.NPCFleeFail += this.HandleNPCFleeFail;
                     npc.NPCAttackedAndHit += this.HandleNPCAttackedAndHit;
                     npc.NPCDied += this.HandleNPCDied;
+                    npc.NPCSpawned += this.HandleNPCSpawned;
                 }
                 catch (Exception ex)
                 {
@@ -276,6 +277,8 @@ namespace MUDAdventure
                         }
                         catch (Exception ex)
                         {
+                            Console.WriteLine("Error: " + ex.Message);
+                            Console.WriteLine("Trace: " + ex.StackTrace);
                         }
                         finally
                         {
@@ -333,6 +336,8 @@ namespace MUDAdventure
                 }
                 catch (Exception ex)
                 {
+                    Console.WriteLine("Error: " + ex.Message);
+                    Console.WriteLine("Trace: " + ex.StackTrace);
                 }
                 finally
                 {
@@ -1054,6 +1059,14 @@ namespace MUDAdventure
                     this.inCombat = false;
                     this.writeToClient(e.DefenderName + " collapsed... DEAD!\r\n");
                 }
+            }
+        }
+
+        private void HandleNPCSpawned(object sender, SpawnedEventArgs e)
+        {
+            if (e.X == this.x && e.Y == this.y && e.Z == this.z)
+            {
+                this.writeToClient(e.Name + " arrives.\r\n");
             }
         }
 
