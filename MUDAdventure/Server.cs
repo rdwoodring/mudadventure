@@ -93,61 +93,70 @@ namespace MUDAdventure
 
         private void ListenForClients()
         {
+            //start our listener socket
             this.tcpListener.Start();
 
+            //start infinite listening loop
             while (true)
             {
+                //loop blocks, waiting to accept client
                 TcpClient client = this.tcpListener.AcceptTcpClient();
 
+                //when it does, we'll create a new player instance, passing in some stuff
                 Player player = new Player(client, ref players, rooms, ref npcs, this.worldTimer, this.hour);                      
 
+                //then let's create a new thread and initialize our player instance
                 Thread clientThread = new Thread(new ParameterizedThreadStart(player.initialize));
                 clientThread.Start();
 
+                //add the thread to the thread list so we can track it if necessary
                 lock (playerThreadList)
                 {
                     this.playerThreadList.Add(clientThread);
                 }
 
+                //let's assign some event handlers for the player connecting and disconnecting
                 player.PlayerConnected += HandlePlayerConnected;
                 player.PlayerDisconnected += HandlePlayerDisconnected;
+
+                //and add the player to the player list.
                 lock (playerLock)
                 {
                     this.players.Add(player);
                 }                
             }
         }
-
+        
         private void HandlePlayerConnected(object sender, PlayerConnectedEventArgs e)
         {
+            //message written to the server console window when the player connects
             Console.WriteLine(e.Name + " has connected.");
         }
 
         private void HandlePlayerDisconnected(object sender, PlayerDisconnectedEventArgs e)
         {
+            //message written to the server console window when the palyer disconnects
             Console.WriteLine(e.Name + " has disconnected.");
 
+            //house cleaning on disconnect!
             lock (playerLock)
             {
                 for (int i = 0; i < players.Count; i++)
                 {
                     if (players[i].Equals((Player)sender))
                     {
+                        //let's remove those pesky event handlers since the player disconnected
                         this.players[i].PlayerConnected -= HandlePlayerConnected;
                         this.players[i].PlayerDisconnected -= HandlePlayerDisconnected;
-                        this.players.RemoveAt(i);
-                        //this.playerThreadList[i].Abort();
-                        
-                        //this.playerThreadList[i].Interrupt();
-                        //this.playerThreadList[i].Join();                        
 
-                        //this.playerThreadList[i].IsBackground = true;
+                        //and remove the player from the list
+                        this.players.RemoveAt(i);
+
+                        //and stop his thread
+                        //TODO: this is the "ungraceful" way.  figure out how to do this better
                         this.playerThreadList[i].Abort();
 
-                        //this.playerThreadList[i].Join();
-
-                        //Console.WriteLine(this.playerThreadList[i].Name + " terminating.");
-
+                        //then remove the thread from the list
                         this.playerThreadList.RemoveAt(i);
                         break;
                     }
@@ -157,13 +166,16 @@ namespace MUDAdventure
 
         private void OnTimedEvent(object sender, ElapsedEventArgs e)
         {
+            //increment the time var
             this.time++;
-            //Console.WriteLine(this.time);
 
+            //since the timed events happen every 1/10 of a second, we don't want to base our world time on that.
+            //Every minute of real time == 1 hour of game time
+            //24 minutes of real time == 1 day of game time
+            //if time / 600 yields no remainder, we're at a nice round hour time marker 
             if (this.time % 600 == 0)
             {
                 hour = this.time / 600;
-                //Console.WriteLine(hour);
 
                 foreach (Player player in players)
                 {
@@ -171,6 +183,7 @@ namespace MUDAdventure
 
                     try
                     {
+                        //so let's pass it out to all the player instances
                         player.ReceiveTime(hour);
                     }
                     catch (Exception ex)

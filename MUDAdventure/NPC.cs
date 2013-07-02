@@ -302,11 +302,14 @@ namespace MUDAdventure
                     this.currentHitpoints = this.totalHitpoints;
 
                     this.respawnCounter = 0;
+
+                    //TODO: implement spawn event so that users see "An NPC arrives." instead of it just all of a sudden existing.
                 }
             }
             else
             {
                 //TODO: implement random movement logic
+                //TODO: implement zones for yelling and to restrict npc movement
             }
         }
 

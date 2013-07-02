@@ -20,20 +20,20 @@ namespace MUDAdventure
         public event EventHandler<FleeFailEventArgs> PlayerFleeFail;
         public event EventHandler<AttackedAndHitEventArgs> PlayerAttackedAndHit;
         
-        private string name;
+        private string name; //the player character's name
         private TcpClient tcpClient;
         NetworkStream clientStream;
         ASCIIEncoding encoder;
-        private int x, y, z;
-        private ObservableCollection<Player> players;
-        private Dictionary<string, Room> rooms;
-        private List<NPC> npcs;
-        private Room currentRoom;
-        private System.Timers.Timer worldTimer;
-        private int worldTime;
-        private int totalMoves, currentMoves, totalHitpoints, currentHitpoints;
-        private Object combatTarget;
-        private Random rand = new Random();
+        private int x, y, z; //x, y, and z coordinates
+        private ObservableCollection<Player> players; //a list of all connected players
+        private Dictionary<string, Room> rooms; //a dictionary of all rooms where the key is "x,y,z"
+        private List<NPC> npcs; //a list of all npcs
+        private Room currentRoom; //which room the player is currently in
+        private System.Timers.Timer worldTimer; //the world timer instantiated by the server. used for timed events like attacking and regening moves and health
+        private int worldTime; //what time it is according to the world's clock
+        private int totalMoves, currentMoves, totalHitpoints, currentHitpoints; //current moves, total moves, current hp, total hp TODO: add MP to this
+        private Object combatTarget; //the target of your wrath, if there is one TODO: make this a list in case another NPC/player attacks while already in combat
+        private Random rand = new Random(); //a random number... it gets used...
 
         private int timeCounter = 0; //for regenerating moves and hp
 
@@ -46,13 +46,14 @@ namespace MUDAdventure
         /****************************************/
         private bool inCombat = false;
         private bool isNight = false;
-        private bool enteringName, enteringPassword, mainGame;
+        private bool enteringName, enteringPassword, mainGame; //is the player entering their name, entering their password, or in the main game loop
         private bool connected;
-        private bool isDead = false;
+        private bool isDead = false; //you don't wanna be this, you're dead HAH!
         private bool isFleeing = false;
         
         public Player(TcpClient client, ref ObservableCollection<Player> playerlist, Dictionary<string, Room> roomlist, ref List<NPC> npclist, System.Timers.Timer timer, int time)
         {
+            //assign a bunch of stuff that's passed in from the server then the Player is created in memory
             this.tcpClient = client;
             this.name = null;
             this.players = playerlist;
@@ -63,21 +64,27 @@ namespace MUDAdventure
 
             this.worldTimer = timer;
 
-            //aTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
+            //assign a handler to the timer's elapsed event so we can have events happen during time.
             this.worldTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
 
+            //setting the time equal to the world time passed in from the server.  
             this.worldTime = time;
 
+            //if the time that's initially passed in is before 6 AM or after 9 PM (21:00), it's night time
+            //which means it's dark, so players can't see without a light UNLESS they are in a lighted room
+            //TODO: add torches and light sources
             if (this.worldTime < 6 || this.worldTime > 21)
             {
                 isNight = true;
             }
         }
 
+        //TODO: fix this accessor... this is not the way all the other accessors are
         public string getName()
         {
             return this.name;
         }
+
 
         public void initialize(object e)
         {
@@ -208,12 +215,14 @@ namespace MUDAdventure
             {
                 case 6:
                     this.writeToClient("The sun crests the horizon and begins its daily ascent.\r\n");
+                    this.isNight = false;
                     break;
                 case 12:
                     this.writeToClient("The sun sits directly overhead, at its apex.\r\n");
                     break;
                 case 21:
                     this.writeToClient("The sun touches the horizon and slowly slips downwards, leaving the world in darkness.\r\n");
+                    this.isNight = true;
                     break;
             }
         }
