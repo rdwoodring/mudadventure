@@ -43,19 +43,23 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AttackedAndHitEventArgs.cs" />
-    <Compile Include="DiedEventArgs.cs" />
-    <Compile Include="FledEventArgs.cs" />
-    <Compile Include="FleeFailEventArgs.cs" />
+    <Compile Include="Custom Args\AttackedAndHitEventArgs.cs" />
+    <Compile Include="Custom Args\DiedEventArgs.cs" />
+    <Compile Include="Custom Args\FledEventArgs.cs" />
+    <Compile Include="Custom Args\FleeFailEventArgs.cs" />
+    <Compile Include="Items\Dagger.cs" />
+    <Compile Include="Items\Item.cs" />
     <Compile Include="NPC.cs" />
     <Compile Include="Player.cs" />
-    <Compile Include="PlayerConnectedEventArgs.cs" />
-    <Compile Include="PlayerDisconnectedEventArgs.cs" />
-    <Compile Include="PlayerMovedEventArgs.cs" />
+    <Compile Include="Custom Args\PlayerConnectedEventArgs.cs" />
+    <Compile Include="Custom Args\PlayerDisconnectedEventArgs.cs" />
+    <Compile Include="Custom Args\PlayerMovedEventArgs.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Room.cs" />
     <Compile Include="Server.cs" />
+    <Compile Include="Custom Args\SpawnedEventArgs.cs" />
+    <Compile Include="Items\Weapon.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Rooms.xml" />

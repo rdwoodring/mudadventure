@@ -9,6 +9,7 @@ using System.Diagnostics;
 
 namespace MUDAdventure
 {
+    //TODO: set this class to abstract.  we don't want any actualy instances of class NPC, only its descendents
     class NPC
     {
         public event EventHandler<PlayerMovedEventArgs> NPCMoved;
@@ -16,6 +17,7 @@ namespace MUDAdventure
         public event EventHandler<FleeFailEventArgs> NPCFleeFail;
         public event EventHandler<AttackedAndHitEventArgs> NPCAttackedAndHit;
         public event EventHandler<DiedEventArgs> NPCDied;
+        public event EventHandler<SpawnedEventArgs> NPCSpawned;
 
         private int spawnX, spawnY, spawnZ, x, y, z, spawntime, totalHitpoints, currentHitpoints, wimpy;
         private string name, description;
@@ -294,16 +296,7 @@ namespace MUDAdventure
 
                 if ((this.respawnCounter * 100) >= this.spawntime)
                 {
-                    this.isDead = false;
-                    this.x = this.spawnX;
-                    this.y = this.spawnY;
-                    this.z = this.spawnZ;
-
-                    this.currentHitpoints = this.totalHitpoints;
-
-                    this.respawnCounter = 0;
-
-                    //TODO: implement spawn event so that users see "An NPC arrives." instead of it just all of a sudden existing.
+                    this.Spawn();
                 }
             }
             else
@@ -311,6 +304,21 @@ namespace MUDAdventure
                 //TODO: implement random movement logic
                 //TODO: implement zones for yelling and to restrict npc movement
             }
+        }
+
+        private void Spawn()
+        {
+            this.isDead = false;
+            this.x = this.spawnX;
+            this.y = this.spawnY;
+            this.z = this.spawnZ;
+
+            this.currentHitpoints = this.totalHitpoints;
+
+            this.respawnCounter = 0;
+
+            //TODO: implement spawn event so that users see "An NPC arrives." instead of it just all of a sudden existing.
+            this.OnNPCSpawned(new SpawnedEventArgs(this.name, this.x, this.y, this.z));
         }
 
         protected virtual void OnNPCMoved(PlayerMovedEventArgs e)
@@ -356,6 +364,16 @@ namespace MUDAdventure
         protected virtual void OnNPCDied(DiedEventArgs e)
         {
             EventHandler<DiedEventArgs> handler = this.NPCDied;
+
+            if (handler != null)
+            {
+                handler(this, e);
+            }
+        }
+
+        protected virtual void OnNPCSpawned(SpawnedEventArgs e)
+        {
+            EventHandler<SpawnedEventArgs> handler = this.NPCSpawned;
 
             if (handler != null)
             {

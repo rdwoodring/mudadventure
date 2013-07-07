@@ -28,6 +28,7 @@ namespace MUDAdventure
         private ObservableCollection<Player> players; //a list of all connected players
         private Dictionary<string, Room> rooms; //a dictionary of all rooms where the key is "x,y,z"
         private List<NPC> npcs; //a list of all npcs
+        private List<Item> itemList; //a list of all items
         private Room currentRoom; //which room the player is currently in
         private System.Timers.Timer worldTimer; //the world timer instantiated by the server. used for timed events like attacking and regening moves and health
         private int worldTime; //what time it is according to the world's clock
@@ -51,7 +52,7 @@ namespace MUDAdventure
         private bool isDead = false; //you don't wanna be this, you're dead HAH!
         private bool isFleeing = false;
         
-        public Player(TcpClient client, ref ObservableCollection<Player> playerlist, Dictionary<string, Room> roomlist, ref List<NPC> npclist, System.Timers.Timer timer, int time)
+        public Player(TcpClient client, ref ObservableCollection<Player> playerlist, Dictionary<string, Room> roomlist, ref List<NPC> npclist, System.Timers.Timer timer, int time, ref List<Item> itemlist)
         {
             //assign a bunch of stuff that's passed in from the server then the Player is created in memory
             this.tcpClient = client;
@@ -59,8 +60,8 @@ namespace MUDAdventure
             this.players = playerlist;
 
             this.rooms = roomlist;
-
             this.npcs = npclist;
+            this.itemList = itemlist;
 
             this.worldTimer = timer;
 
@@ -264,26 +265,23 @@ namespace MUDAdventure
                         message += "\r\n" + currentRoom.RoomName + "\r\n" + exits + "\r\n" + currentRoom.RoomDescription;
 
                         //check to see if any NPCs are here
-                        Monitor.TryEnter(npclock, 3000);
-                        try
+                        foreach (NPC npc in this.npcs)
                         {
-                            foreach (NPC npc in npcs)
+                            if (npc.X == this.x && npc.Y == this.y && npc.Z == this.z)
                             {
-                                if (npc.X == this.x && npc.Y == this.y && npc.Z == this.z)
-                                {
-                                    message += "\r\n" + npc.Name + " is here.";
-                                }
+                                message += "\r\n" + npc.Name + " is here.";
                             }
                         }
-                        catch (Exception ex)
+
+                        //check to see if any items are here
+                        foreach (Item item in this.itemList)
                         {
-                            Console.WriteLine("Error: " + ex.Message);
-                            Console.WriteLine("Trace: " + ex.StackTrace);
+                            if (item.X == this.x && item.Y == this.y && item.Z == this.z)
+                            {
+                                message += "\r\n" + item.Name + " is lying here.";
+                            }
                         }
-                        finally
-                        {
-                            Monitor.Exit(npclock);
-                        }
+
 
                         writeToClient(message);
                     }

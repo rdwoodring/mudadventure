@@ -23,6 +23,7 @@ namespace MUDAdventure
         private Dictionary<string, Room> rooms = new Dictionary<string,Room>();
         private List<NPC> npcs = new List<NPC>();
         private List<Thread> playerThreadList = new List<Thread>();
+        private List<Item> itemList = new List<Item>();
         private System.Timers.Timer worldTimer;
         private int time, hour;
 
@@ -51,7 +52,12 @@ namespace MUDAdventure
 
             //TODO: add code for loading npcs from DB
             NPC npc = new NPC(0, 0, 0, "An NPC", "An NPC is standing here.  It has no form and nothing on.", new List<string> {"NPC"}, 60000, 10, 0, this.worldTimer, this.players, this.rooms);
-            this.npcs.Add( npc);                                   
+            this.npcs.Add( npc);
+
+            Dagger dagger = new Dagger("A Dagger", "A very generic, basic dagger", 1, 0, 0, 0, 10000, true, 10, 10);
+            itemList.Add(dagger);
+            //Weapon weapon = new Weapon("something", "blah", 3.5, 1, 1, 1, 10, 10);
+            
         }
 
         private void ReadRoomFile()
@@ -103,7 +109,7 @@ namespace MUDAdventure
                 TcpClient client = this.tcpListener.AcceptTcpClient();
 
                 //when it does, we'll create a new player instance, passing in some stuff
-                Player player = new Player(client, ref players, rooms, ref npcs, this.worldTimer, this.hour);                      
+                Player player = new Player(client, ref players, rooms, ref npcs, this.worldTimer, this.hour, ref this.itemList);                      
 
                 //then let's create a new thread and initialize our player instance
                 Thread clientThread = new Thread(new ParameterizedThreadStart(player.initialize));
