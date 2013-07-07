@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Timers;
 
 namespace MUDAdventure
 {
@@ -13,12 +14,14 @@ namespace MUDAdventure
 
         protected string name, description;
         protected double weight;
-        protected int spawnX, spawnY, spawnZ, x, y, z, respawnTime, respawnCounter, expireCounter;
-        protected bool spawnable, expirable, inInventory;
+        protected int spawnX, spawnY, spawnZ, x, y, z, spawntime, respawnCounter, expireCounter;
+        protected bool spawnable, expirable, inInventory, spawned;
+        protected List<string> refNames;
+        private System.Timers.Timer worldTimer;
 
         public Item() { }
 
-        public Item(string n, string d, double w, int spx, int spy, int spz, int sptime, bool spawn)
+        public Item(System.Timers.Timer timer, string n, string d, double w, int spx, int spy, int spz, int sptime, bool spawn, List<string> rn)
         {
             this.name = n;
             this.description = d;
@@ -33,27 +36,58 @@ namespace MUDAdventure
             this.y = this.spawnY;
             this.z = this.spawnZ;
 
-            this.respawnTime = sptime;
+            this.spawntime = sptime;
             this.spawnable = spawn;
 
             this.expirable = false;
+
+            this.refNames = rn;
+
+            this.spawned = true;
+
+            this.worldTimer = timer;
+            this.worldTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
+
+            this.respawnCounter = 0;
         }
 
-        public Item(string n, string d, double w, int spx, int spy, int spz, bool exp)
+        public void PickedUp()
+        {            
+            this.spawned = false;
+
+            this.x = -9999;
+            this.y = -9999;
+            this.z = -9999;
+
+            //TODO: raise picked up event
+        }
+
+        private void Spawn()
         {
-            this.name = n;
-            this.description = d;
+            this.x = this.spawnX;
+            this.y = this.spawnY;
+            this.z = this.spawnZ;
 
-            this.weight = w;
+            this.respawnCounter = 0;
+            this.spawned = true;
 
-            this.spawnX = spx;
-            this.spawnY = spy;
-            this.spawnZ = spz;
-
-            this.expirable = exp;
-
-            this.spawnable = false;
+            //TODO: raise respawn event
         }
+
+        private void OnTimedEvent(object sender, ElapsedEventArgs e)
+        {
+            if (this.spawned == false)
+            {
+                this.respawnCounter++;
+
+                if ((this.respawnCounter * 100) >= this.spawntime)
+                {
+                    this.Spawn();
+                }
+            }
+        }
+
+        #region Attribute Accessors
 
         public string Name
         {
@@ -90,5 +124,12 @@ namespace MUDAdventure
             get { return this.z; }
             set { this.z = value; }
         }
+
+        public List<string> RefNames
+        {
+            get { return this.refNames; }
+            set { this.refNames = value; }
+        }
+        #endregion
     }
 }

@@ -54,7 +54,7 @@ namespace MUDAdventure
             NPC npc = new NPC(0, 0, 0, "An NPC", "An NPC is standing here.  It has no form and nothing on.", new List<string> {"NPC"}, 60000, 10, 0, this.worldTimer, this.players, this.rooms);
             this.npcs.Add( npc);
 
-            Dagger dagger = new Dagger("A Dagger", "A very generic, basic dagger", 1, 0, 0, 0, 10000, true, 10, 10);
+            Dagger dagger = new Dagger(this.worldTimer, "A dagger", "A very generic, basic dagger", 1, 0, 0, 0, 10000, true, new List<string> { "dagger", "dag" }, 10, 10);
             itemList.Add(dagger);
             //Weapon weapon = new Weapon("something", "blah", 3.5, 1, 1, 1, 10, 10);
             

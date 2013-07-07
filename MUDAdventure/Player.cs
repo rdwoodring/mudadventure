@@ -384,9 +384,21 @@ namespace MUDAdventure
                     writeToClient("Kill who?");
                 }
             }
+            else if (input.StartsWith("take"))
+            {
+                if (input.Length > 4)
+                {
+                    string args = input.Substring(5);
+                    this.Take(args.ToLower());
+                }
+                else
+                {
+                    writeToClient("Take what?");
+                }
+            }
             else if (input.StartsWith("inf"))
             {
-                this.Info();                
+                this.Info();
             }
             else if (input.StartsWith("flee"))
             {
@@ -400,6 +412,27 @@ namespace MUDAdventure
             else
             {
                 this.writeToClient("Unrecognized command.");
+            }
+        }
+
+        private void Take(string args)
+        {
+            if (!this.isNight || this.currentRoom.LightedRoom)
+            {
+                foreach (Item item in this.itemList)
+                {
+                    if (item.RefNames.Contains(args))
+                    {
+                        this.writeToClient("You pick up " + item.Name + ".");
+                        item.PickedUp();
+                        //TODO: make a copy of item and add it to player inventory
+                        //TODO: add item weight to total inventory weight
+                    }
+                }
+            }
+            else
+            {
+                this.writeToClient("It's too dark to see that item");
             }
         }
 
@@ -463,18 +496,18 @@ namespace MUDAdventure
                         }
                         else
                         {
-                            writeToClient("That person isn't here.");
+                            this.writeToClient("That person isn't here.");
                         }
                     }
                 }
                 else
                 {
-                    writeToClient("It's too dark to see that person.");
+                    this.writeToClient("It's too dark to see that person.");
                 }
             }
             else
             {
-                writeToClient("You're already in a fight!");
+                this.writeToClient("You're already in a fight!");
             }
         }
 

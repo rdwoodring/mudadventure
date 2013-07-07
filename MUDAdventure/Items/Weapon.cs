@@ -11,19 +11,12 @@ namespace MUDAdventure
 
         public Weapon() { }
 
-        public Weapon(string n, string d, double w, int spx, int spy, int spz, int sptime, bool spawn, int dmg,int spd) :base (n, d, w, spx, spy, spz, sptime, spawn)
+        public Weapon(System.Timers.Timer timer, string n, string d, double w, int spx, int spy, int spz, int sptime, bool spawn, List<string> rn, int dmg,int spd) :base (timer, n, d, w, spx, spy, spz, sptime, spawn, rn)
         {
 
             this.damage = dmg;
             this.speed = spd;
-        }
-
-        public Weapon(string n, string d, double w, int spx, int spy, int spz, bool exp, int dmg, int spd)
-        {
-
-            this.damage = dmg;
-            this.speed = spd;
-        }
+        }        
 
         public int Damage
         {
