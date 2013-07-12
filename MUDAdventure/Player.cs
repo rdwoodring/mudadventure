@@ -413,6 +413,8 @@ namespace MUDAdventure
             {
                 this.writeToClient("Unrecognized command.");
             }
+
+            Debug.Print(input);
         }
 
         private void Take(string args)
@@ -733,6 +735,39 @@ namespace MUDAdventure
                 }
             }
 
+            if (finalMessage.Contains("\b"))
+            {
+                //char[] tempmessage = finalMessage.ToCharArray();
+                //string reversedmessage = string.Empty;
+                //for (int i = tempmessage.Length - 1; i >= 0; i--)
+                //{
+                //    if (tempmessage[i] != '\b')
+                //    {
+                //        reversedmessage += tempmessage[i];
+                //    }
+                //    else
+                //    {
+                //        i--;
+                //    }
+                //}
+
+                //Debug.Print(reversedmessage);
+
+                //tempmessage = reversedmessage.ToCharArray();
+
+                //for (int i = tempmessage.Length-1; i >=0; i--)
+                //{
+                //    finalMessage += tempmessage[i];
+                //    Debug.Print(tempmessage[i].ToString());
+                //}
+                do
+                {
+                    finalMessage = finalMessage.Remove(finalMessage.IndexOf("\b") - 1, 2);
+                } while (finalMessage.Contains("\b"));
+                
+            }
+
+            Debug.Print(finalMessage);
             return finalMessage.TrimEnd('\r', '\n');
         }
 
