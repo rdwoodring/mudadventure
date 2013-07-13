@@ -47,6 +47,7 @@
     <Compile Include="Custom Args\DiedEventArgs.cs" />
     <Compile Include="Custom Args\FledEventArgs.cs" />
     <Compile Include="Custom Args\FleeFailEventArgs.cs" />
+    <Compile Include="Inventory.cs" />
     <Compile Include="Items\Dagger.cs" />
     <Compile Include="Items\Item.cs" />
     <Compile Include="NPC.cs" />

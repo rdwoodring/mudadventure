@@ -29,12 +29,15 @@ namespace MUDAdventure
         private Dictionary<string, Room> rooms; //a dictionary of all rooms where the key is "x,y,z"
         private List<NPC> npcs; //a list of all npcs
         private List<Item> itemList; //a list of all items
+        private List<Item> expirableItemList;
         private Room currentRoom; //which room the player is currently in
         private System.Timers.Timer worldTimer; //the world timer instantiated by the server. used for timed events like attacking and regening moves and health
         private int worldTime; //what time it is according to the world's clock
         private int totalMoves, currentMoves, totalHitpoints, currentHitpoints; //current moves, total moves, current hp, total hp TODO: add MP to this
         private Object combatTarget; //the target of your wrath, if there is one TODO: make this a list in case another NPC/player attacks while already in combat
         private Random rand = new Random(); //a random number... it gets used...
+        private Inventory inventory = new Inventory();
+        private double maxCarryWeight;
 
         private int timeCounter = 0; //for regenerating moves and hp
 
@@ -52,7 +55,7 @@ namespace MUDAdventure
         private bool isDead = false; //you don't wanna be this, you're dead HAH!
         private bool isFleeing = false;
         
-        public Player(TcpClient client, ref ObservableCollection<Player> playerlist, Dictionary<string, Room> roomlist, ref List<NPC> npclist, System.Timers.Timer timer, int time, ref List<Item> itemlist)
+        public Player(TcpClient client, ref ObservableCollection<Player> playerlist, Dictionary<string, Room> roomlist, ref List<NPC> npcs, System.Timers.Timer timer, int time, ref List<Item> itemlist, ref List<Item> expirableItemList)
         {
             //assign a bunch of stuff that's passed in from the server then the Player is created in memory
             this.tcpClient = client;
@@ -60,7 +63,7 @@ namespace MUDAdventure
             this.players = playerlist;
 
             this.rooms = roomlist;
-            this.npcs = npclist;
+            this.npcs = npcs;
             this.itemList = itemlist;
 
             this.worldTimer = timer;
@@ -78,6 +81,11 @@ namespace MUDAdventure
             {
                 isNight = true;
             }
+
+            //TODO: peg this value to the strength statistic somehow
+            this.maxCarryWeight = 100;
+
+            this.expirableItemList = expirableItemList;
         }
 
         //TODO: fix this accessor... this is not the way all the other accessors are
@@ -282,6 +290,14 @@ namespace MUDAdventure
                             }
                         }
 
+                        
+                        foreach (Item item in this.expirableItemList)
+                        {
+                            if (item.X == this.x && item.Y == this.y && item.Z == this.z)
+                            {
+                                message += "\r\n" + item.Name + " is lying here.";
+                            }
+                        }                        
 
                         writeToClient(message);
                     }
@@ -393,8 +409,24 @@ namespace MUDAdventure
                 }
                 else
                 {
-                    writeToClient("Take what?");
+                    this.writeToClient("Take what?");
                 }
+            }
+            else if (input.StartsWith("drop"))
+            {
+                if (input.Length > 4)
+                {
+                    string args = input.Substring(5);
+                    this.Drop(args.ToLower());
+                }
+                else
+                {
+                    this.writeToClient("Drop what?");
+                }
+            }
+            else if (input.StartsWith("inv"))
+            {
+                this.Inventory();
             }
             else if (input.StartsWith("inf"))
             {
@@ -417,18 +449,91 @@ namespace MUDAdventure
             Debug.Print(input);
         }
 
+        private void Drop(string args)
+        {
+            Dictionary<int, Item> items = this.inventory.ListInventory();
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                if (items[i].RefNames.Contains(args))
+                {
+                    switch (items[i].GetType().ToString())
+                    {
+                        case "MUDAdventure.Dagger":
+                            Dagger tempitem = new Dagger((Dagger)items[i]);
+                            tempitem.X = this.x;
+                            tempitem.Y = this.y;
+                            tempitem.Z = this.z;
+                            tempitem.Spawnable = false;
+                            tempitem.Expirable = true;
+                            tempitem.ExpireCounter = 0;
+                            tempitem.InInventory = false;
+                            this.expirableItemList.Add(tempitem);
+                            break;
+                        default:
+                            break;
+                    }
+
+
+                    this.inventory.RemoveItem(i);                
+                }
+            }
+        }
+
+        private void Inventory()
+        {
+            Dictionary<int, Item> items = this.inventory.ListInventory();
+            StringBuilder invlist = new StringBuilder();                        
+
+            for (int i =0; i<items.Count; i++)
+            {
+                invlist.AppendLine(i.ToString() + ". " + items[i].Name);
+            }
+
+            if (invlist.ToString() == String.Empty)
+            {
+                invlist.AppendLine("Nothing");
+            }
+
+            invlist.Insert(0, "You are carrying:\r\n");
+            
+            writeToClient(invlist.ToString());
+        }
+
         private void Take(string args)
         {
             if (!this.isNight || this.currentRoom.LightedRoom)
             {
                 foreach (Item item in this.itemList)
                 {
-                    if (item.RefNames.Contains(args))
+                    if (item.RefNames.Contains(args) && item.X == this.x && item.Y == this.y && item.Z == this.z)
                     {
-                        this.writeToClient("You pick up " + item.Name + ".");
-                        item.PickedUp();
-                        //TODO: make a copy of item and add it to player inventory
-                        //TODO: add item weight to total inventory weight
+                        if ((item.Weight + this.inventory.Weight) <= this.maxCarryWeight)
+                        {
+                            this.writeToClient("You pick up " + item.Name + ".");
+                            switch (item.GetType().ToString())
+                            {
+                                case "MUDAdventure.Dagger":
+                                    //Dagger tempitem = new Dagger(item.WorldTimer, item.Name, item.Description, item.Weight, item.SpawnX, item.SpawnY, item.SpawnZ, item.SpawnTime, item.Spawnable, item.RefNames, ref expirableItemList, item.Damage, item.Speed);
+                                    Dagger tempitem = new Dagger((Dagger)item);
+                                    tempitem.Spawnable = false;
+                                    tempitem.SpawnTime = 0;
+                                    tempitem.Expirable = true;
+                                    tempitem.ExpireCounter = 0;
+                                    tempitem.InInventory = true;
+                                    this.inventory.AddItem(tempitem);
+                                    break;
+                            }
+                            item.PickedUp();
+                        }
+                        else
+                        {
+                            writeToClient(item.Name + " is too heavy for you to carry.");
+                        }
+                    }
+                    else
+                    {
+                        writeToClient("That item isn't here.");
                     }
                 }
             }
@@ -475,6 +580,7 @@ namespace MUDAdventure
             StringBuilder message = new StringBuilder();
             message.AppendLine("You are " + this.name + ".");
             message.AppendLine("HP: " + this.currentHitpoints + "/" + this.totalHitpoints + "; MV: " + this.currentMoves + "/" + this.totalMoves);
+            message.AppendLine("You are carrying " + this.inventory.Weight + "/" + this.maxCarryWeight + " pounds.");
             message.AppendLine("The time is " + this.worldTime);
 
             this.writeToClient(message.ToString());
@@ -736,30 +842,7 @@ namespace MUDAdventure
             }
 
             if (finalMessage.Contains("\b"))
-            {
-                //char[] tempmessage = finalMessage.ToCharArray();
-                //string reversedmessage = string.Empty;
-                //for (int i = tempmessage.Length - 1; i >= 0; i--)
-                //{
-                //    if (tempmessage[i] != '\b')
-                //    {
-                //        reversedmessage += tempmessage[i];
-                //    }
-                //    else
-                //    {
-                //        i--;
-                //    }
-                //}
-
-                //Debug.Print(reversedmessage);
-
-                //tempmessage = reversedmessage.ToCharArray();
-
-                //for (int i = tempmessage.Length-1; i >=0; i--)
-                //{
-                //    finalMessage += tempmessage[i];
-                //    Debug.Print(tempmessage[i].ToString());
-                //}
+            {                
                 do
                 {
                     finalMessage = finalMessage.Remove(finalMessage.IndexOf("\b") - 1, 2);
