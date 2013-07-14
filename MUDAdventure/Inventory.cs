@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Diagnostics;
 
 namespace MUDAdventure
 {
@@ -10,8 +12,9 @@ namespace MUDAdventure
         private Weapon wielded;
         //private Apparel head, torso, pants, hands, feet, neck, rfinger, lfinger;
         //private Shield shield;
-        private Dictionary<int, Item> generalInventory = new Dictionary<int, Item>();
+        private List<Item> generalInventory = new List<Item>();
         private double weight;
+        private object inventoryLock = new object();
 
         public Inventory()
         {
@@ -20,8 +23,21 @@ namespace MUDAdventure
 
         public void AddItem(Item item)
         {
-            this.generalInventory.Add(this.generalInventory.Count, item);
-            this.weight += item.Weight;
+            Monitor.TryEnter(inventoryLock, 3000);
+            try
+            {
+                this.generalInventory.Add(item);
+                this.weight += item.Weight;
+            }
+            catch (Exception ex)
+            {
+                Debug.Print(ex.Message.ToString());
+                Debug.Print(ex.StackTrace.ToString());
+            }
+            finally
+            {
+                Monitor.Exit(inventoryLock);
+            }
         }
 
         public void RemoveItem(Item item)
@@ -30,13 +46,26 @@ namespace MUDAdventure
 
         public void RemoveItem(int index)
         {
-            this.weight -= this.generalInventory[index].Weight;
-            this.generalInventory.Remove(index);            
+            Monitor.TryEnter(inventoryLock, 3000);
+            try
+            {
+                this.weight -= this.generalInventory[index].Weight;
+                this.generalInventory.RemoveAt(index);
+            }
+            catch (Exception ex)
+            {
+                Debug.Print(ex.Message.ToString());
+                Debug.Print(ex.StackTrace.ToString());
+            }
+            finally
+            {
+                Monitor.Exit(inventoryLock);
+            }
         }
 
         #region Attribute Accessors
 
-        public Dictionary<int, Item> ListInventory()
+        public List<Item> ListInventory()
         {
             return this.generalInventory;
         }

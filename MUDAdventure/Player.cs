@@ -602,7 +602,7 @@ namespace MUDAdventure
         private void Drop(string args)
         {
             bool found = false;
-            Dictionary<int, Item> items = this.inventory.ListInventory();
+            List<Item> items = this.inventory.ListInventory();
 
             if (items.Count > 0)
             {
@@ -631,6 +631,7 @@ namespace MUDAdventure
                         writeToClient("You drop " + items[i].Name);
                         this.inventory.RemoveItem(i);
 
+
                         found = true;
                         break;
                     }
@@ -645,15 +646,17 @@ namespace MUDAdventure
 
         private void Inventory()
         {
-            Dictionary<int, Item> items = this.inventory.ListInventory();
+            List<Item> items = this.inventory.ListInventory();
             StringBuilder invlist = new StringBuilder();                        
 
             for (int i =0; i<items.Count; i++)
             {
-                Item tempitem;
-                items.TryGetValue(i, out tempitem);
+                Item tempitem = items[i];                
                 
                 //TODO: find some kind of bug in here that is causing an exception.  there should be multiple items here, did one expire while in inventory or something?????
+                //found it.  can't reliably use a dictionary perhaps.  item with key 1 is removed, but then item with key of 2 isn't changed.  Using the dictionary's count property
+                //is causing us to "find" an item with a key of 1, which we have already dropped.
+                //stupid.... what a pain... thinking
                 invlist.AppendLine((i+1).ToString() + ". " + tempitem.Name);
             }
 
@@ -727,6 +730,7 @@ namespace MUDAdventure
                                         tempitem.ExpireCounter = 0;
                                         tempitem.InInventory = true;
                                         this.inventory.AddItem(tempitem);
+                                        this.expirableItemList.Remove(item);
                                         break;
                                 }
 
