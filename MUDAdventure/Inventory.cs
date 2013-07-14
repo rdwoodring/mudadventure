@@ -7,7 +7,9 @@ namespace MUDAdventure
 {
     class Inventory
     {
-        private Weapon rightHand, leftHand;
+        private Weapon wielded;
+        //private Apparel head, torso, pants, hands, feet, neck, rfinger, lfinger;
+        //private Shield shield;
         private Dictionary<int, Item> generalInventory = new Dictionary<int, Item>();
         private double weight;
 
@@ -32,6 +34,8 @@ namespace MUDAdventure
             this.generalInventory.Remove(index);            
         }
 
+        #region Attribute Accessors
+
         public Dictionary<int, Item> ListInventory()
         {
             return this.generalInventory;
@@ -43,6 +47,13 @@ namespace MUDAdventure
             set { this.weight = value; }
         }
 
+        public Weapon Wielded
+        {
+            get { return this.wielded; }
+            set { this.wielded = value; }
+        }
+
+        #endregion
 
     }
 }
