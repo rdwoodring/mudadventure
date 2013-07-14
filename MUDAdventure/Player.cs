@@ -237,6 +237,241 @@ namespace MUDAdventure
             }
         }
 
+        private void ParseInput(string input)
+        {
+            input = input.ToLower();
+
+            if (input == "n" || input == "s" || input == "e" || input == "w")
+            {
+                this.Move(input);
+            }
+            else if (input == String.Empty)
+            {
+                writeToClient(String.Empty);
+            }            
+            else if (input.StartsWith("look"))
+            {                
+                if (input.Length > 4) //has args after it
+                {
+                    string args = input.Substring(5);
+                    this.Look(args.ToLower());
+                }
+                else //no args after it
+                {
+                    this.Look();
+                }
+            }
+            else if (input.StartsWith("eq"))
+            {
+                this.EquipmentList();
+            }
+            else if (input.StartsWith("kill"))
+            {
+                if (input.Length > 4)
+                {
+                    string args = input.Substring(5);
+                    this.Kill(args.ToLower());
+                }
+                else
+                {
+                    writeToClient("Kill who?");
+                }
+            }
+            else if (input.StartsWith("take"))
+            {
+                if (input.Length > 4)
+                {
+                    string args = input.Substring(5);
+                    this.Take(args.ToLower());
+                }
+                else
+                {
+                    this.writeToClient("Take what?");
+                }
+            }
+            else if (input.StartsWith("drop"))
+            {
+                if (input.Length > 4)
+                {
+                    string args = input.Substring(5);
+                    this.Drop(args.ToLower());
+                }
+                else
+                {
+                    this.writeToClient("Drop what?");
+                }
+            }
+            else if (input.StartsWith("inv"))
+            {
+                this.Inventory();
+            }
+            else if (input.StartsWith("inf"))
+            {
+                this.Info();
+            }
+            else if (input.StartsWith("flee"))
+            {
+                this.Flee();
+            }
+            else if (input == "exit")
+            {
+                //TODO: implement event for disconnect so Server can update player list
+                this.Disconnect();
+            }
+            else
+            {
+                this.writeToClient("Unrecognized command.");
+            }
+
+            Debug.Print(input);
+        }
+
+        #region Player Command Methods
+
+        private void EquipmentList()
+        {
+            StringBuilder equipmentlist = new StringBuilder();
+
+            equipmentlist.AppendLine("Items that are currently equipped:");
+
+            //for weapons
+            equipmentlist.Append("[Wielded] \t\t");
+            if (this.inventory.Wielded != null)
+            {
+                equipmentlist.AppendLine(this.inventory.Wielded.Name);
+            }
+            else
+            {
+                equipmentlist.AppendLine("Nothing");
+            }
+
+            //TODO: add for apparel, shields, lights, etc.
+
+            writeToClient(equipmentlist.ToString());
+        }
+
+        private void Move(string dir)
+        {
+            if (!this.inCombat || this.isFleeing)
+            {
+                int oldx, oldy, oldz;
+                oldx = this.x;
+                oldy = this.y;
+                oldz = this.z;
+
+                //make sure the room we are in exists and is not null
+                if (currentRoom != null)
+                {
+                    if (this.isFleeing)
+                    {
+                        if (this.currentMoves > 5)
+                        {
+                            //check the movement direction, and see if an exit is available that way.
+                            switch (dir)
+                            {
+                                case "n":
+                                    if (currentRoom.NorthExit)
+                                    {
+                                        this.y++;
+                                    }
+                                    break;
+                                case "s":
+                                    if (currentRoom.SouthExit)
+                                    {
+                                        this.y--;
+                                    }
+                                    break;
+                                case "e":
+                                    if (currentRoom.EastExit)
+                                    {
+                                        this.x++;
+                                    }
+                                    break;
+                                case "w":
+                                    if (currentRoom.WestExit)
+                                    {
+                                        this.x--;
+                                    }
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            this.OnPlayerFleeFail(new FleeFailEventArgs(this.x, this.y, this.z, this.name));
+                            this.currentMoves -= 3;
+                        }
+                    }
+                    else if (!this.isFleeing)
+                    {
+                        if (currentMoves > 0)
+                        {
+                            //check the movement direction, and see if an exit is available that way.
+                            switch (dir)
+                            {
+                                case "n":
+                                    if (currentRoom.NorthExit)
+                                    {
+                                        this.y++;
+                                    }
+                                    break;
+                                case "s":
+                                    if (currentRoom.SouthExit)
+                                    {
+                                        this.y--;
+                                    }
+                                    break;
+                                case "e":
+                                    if (currentRoom.EastExit)
+                                    {
+                                        this.x++;
+                                    }
+                                    break;
+                                case "w":
+                                    if (currentRoom.WestExit)
+                                    {
+                                        this.x--;
+                                    }
+                                    break;
+                            }
+                        }
+
+                        //if we have moved, let's look around the new room automatically and raise the OnPlayerMoved event
+                        if (this.x != oldx || this.y != oldy || this.z != oldz)
+                        {
+                            if (this.isFleeing)
+                            {
+                                rooms.TryGetValue(this.x.ToString() + "," + this.y.ToString() + "," + this.z.ToString(), out this.currentRoom);
+                                this.Look();
+                                this.OnPlayerFled(new FledEventArgs(this.x, this.y, this.z, oldx, oldy, oldz, this.name, dir));
+                                currentMoves -= 5;
+                            }
+                            this.Look();
+
+                            this.OnPlayerMoved(new PlayerMovedEventArgs(this.x, this.y, this.z, oldx, oldy, oldz, this.name, dir));
+                            this.currentMoves--;
+
+                            //getting current room.
+                            this.rooms.TryGetValue(this.x + "," + this.y + "," + this.z, out this.currentRoom);
+                        }
+                        //if we haven't moved, that means there wasn't an available exit in that direction.
+                        //let's tell the stupid player with an message
+                        else
+                        {
+                            writeToClient("You cannot go that direction.");
+                        }
+                    }
+                    else
+                    {
+                        writeToClient("You are too tired to move.");
+                    }
+                }
+            }
+            else
+            {
+                writeToClient("No way! You're in the middle of a fight!");
+            }
+        }
+
         private void Look()
         {
             string message = String.Empty;
@@ -244,7 +479,7 @@ namespace MUDAdventure
             this.rooms.TryGetValue(this.x.ToString() + "," + this.y.ToString() + "," + this.z.ToString(), out currentRoom);
 
             if (!isNight || currentRoom.LightedRoom)
-            {                
+            {
                 try
                 {
                     if (currentRoom != null)
@@ -290,14 +525,14 @@ namespace MUDAdventure
                             }
                         }
 
-                        
+
                         foreach (Item item in this.expirableItemList)
                         {
                             if (item.X == this.x && item.Y == this.y && item.Z == this.z)
                             {
                                 message += "\r\n" + item.Name + " is lying here.";
                             }
-                        }                        
+                        }
 
                         writeToClient(message);
                     }
@@ -364,130 +599,65 @@ namespace MUDAdventure
             }
         }
 
-        private void ParseInput(string input)
-        {
-            input = input.ToLower();
-
-            if (input == "n" || input == "s" || input == "e" || input == "w")
-            {
-                this.Move(input);
-            }
-            else if (input == String.Empty)
-            {
-                writeToClient(String.Empty);
-            }            
-            else if (input.StartsWith("look"))
-            {                
-                if (input.Length > 4) //has args after it
-                {
-                    string args = input.Substring(5);
-                    this.Look(args.ToLower());
-                }
-                else //no args after it
-                {
-                    this.Look();
-                }
-            }
-            else if (input.StartsWith("kill"))
-            {
-                if (input.Length > 4)
-                {
-                    string args = input.Substring(5);
-                    this.Kill(args.ToLower());
-                }
-                else
-                {
-                    writeToClient("Kill who?");
-                }
-            }
-            else if (input.StartsWith("take"))
-            {
-                if (input.Length > 4)
-                {
-                    string args = input.Substring(5);
-                    this.Take(args.ToLower());
-                }
-                else
-                {
-                    this.writeToClient("Take what?");
-                }
-            }
-            else if (input.StartsWith("drop"))
-            {
-                if (input.Length > 4)
-                {
-                    string args = input.Substring(5);
-                    this.Drop(args.ToLower());
-                }
-                else
-                {
-                    this.writeToClient("Drop what?");
-                }
-            }
-            else if (input.StartsWith("inv"))
-            {
-                this.Inventory();
-            }
-            else if (input.StartsWith("inf"))
-            {
-                this.Info();
-            }
-            else if (input.StartsWith("flee"))
-            {
-                this.Flee();
-            }
-            else if (input == "exit")
-            {
-                //TODO: implement event for disconnect so Server can update player list
-                this.Disconnect();
-            }
-            else
-            {
-                this.writeToClient("Unrecognized command.");
-            }
-
-            Debug.Print(input);
-        }
-
         private void Drop(string args)
         {
-            Dictionary<int, Item> items = this.inventory.ListInventory();
+            bool found = false;
+            List<Item> items = this.inventory.ListInventory();
 
-            for (int i = 0; i < items.Count; i++)
+            if (items.Count > 0)
             {
-                if (items[i].RefNames.Contains(args))
+                for (int i = 0; i < items.Count; i++)
                 {
-                    switch (items[i].GetType().ToString())
+                    if (items[i].RefNames.Contains(args))
                     {
-                        case "MUDAdventure.Dagger":
-                            Dagger tempitem = new Dagger((Dagger)items[i]);
-                            tempitem.X = this.x;
-                            tempitem.Y = this.y;
-                            tempitem.Z = this.z;
-                            tempitem.Spawnable = false;
-                            tempitem.Expirable = true;
-                            tempitem.ExpireCounter = 0;
-                            tempitem.InInventory = false;
-                            this.expirableItemList.Add(tempitem);
-                            break;
-                        default:
-                            break;
+                        switch (items[i].GetType().ToString())
+                        {
+                            case "MUDAdventure.Dagger":
+                                Dagger tempitem = new Dagger((Dagger)items[i]);
+                                tempitem.X = this.x;
+                                tempitem.Y = this.y;
+                                tempitem.Z = this.z;
+                                tempitem.Spawnable = false;
+                                tempitem.Expirable = true;
+                                tempitem.ExpireCounter = 0;
+                                tempitem.InInventory = false;
+                                this.expirableItemList.Add(tempitem);
+                                break;
+                            default:
+                                break;
+                        }
+
+                        //TODO: raise dropped item event so other users can see it
+                        writeToClient("You drop " + items[i].Name);
+                        this.inventory.RemoveItem(i);
+
+
+                        found = true;
+                        break;
                     }
-
-
-                    this.inventory.RemoveItem(i);                
                 }
+            }
+
+            if (!found)
+            {
+                writeToClient("You're not carrying any such item.");
             }
         }
 
         private void Inventory()
         {
-            Dictionary<int, Item> items = this.inventory.ListInventory();
+            List<Item> items = this.inventory.ListInventory();
             StringBuilder invlist = new StringBuilder();                        
 
             for (int i =0; i<items.Count; i++)
             {
-                invlist.AppendLine(i.ToString() + ". " + items[i].Name);
+                Item tempitem = items[i];                
+                
+                //TODO: find some kind of bug in here that is causing an exception.  there should be multiple items here, did one expire while in inventory or something?????
+                //found it.  can't reliably use a dictionary perhaps.  item with key 1 is removed, but then item with key of 2 isn't changed.  Using the dictionary's count property
+                //is causing us to "find" an item with a key of 1, which we have already dropped.
+                //stupid.... what a pain... thinking
+                invlist.AppendLine((i+1).ToString() + ". " + tempitem.Name);
             }
 
             if (invlist.ToString() == String.Empty)
@@ -504,6 +674,8 @@ namespace MUDAdventure
         {
             if (!this.isNight || this.currentRoom.LightedRoom)
             {
+                bool found = false;
+
                 foreach (Item item in this.itemList)
                 {
                     if (item.RefNames.Contains(args) && item.X == this.x && item.Y == this.y && item.Z == this.z)
@@ -524,19 +696,63 @@ namespace MUDAdventure
                                     this.inventory.AddItem(tempitem);
                                     break;
                             }
-                            item.PickedUp();
+
+                            //TODO: raise item picked up event so other users can see
+                            item.PickedUp();                            
                         }
                         else
                         {
                             writeToClient(item.Name + " is too heavy for you to carry.");
                         }
-                    }
-                    else
-                    {
-                        writeToClient("That item isn't here.");
+
+                        found = true;
+                        break;
                     }
                 }
-            }
+
+                if (!found)
+                {
+                    foreach (Item item in this.expirableItemList)
+                    {
+                        if (item.RefNames.Contains(args) && item.X == this.x && item.Y == this.y && item.Z == this.z)
+                        {
+                            if ((item.Weight + this.inventory.Weight) <= this.maxCarryWeight)
+                            {
+                                this.writeToClient("You pick up " + item.Name + ".");
+                                switch (item.GetType().ToString())
+                                {
+                                    case "MUDAdventure.Dagger":
+                                        //Dagger tempitem = new Dagger(item.WorldTimer, item.Name, item.Description, item.Weight, item.SpawnX, item.SpawnY, item.SpawnZ, item.SpawnTime, item.Spawnable, item.RefNames, ref expirableItemList, item.Damage, item.Speed);
+                                        Dagger tempitem = new Dagger((Dagger)item);
+                                        tempitem.Spawnable = false;
+                                        tempitem.SpawnTime = 0;
+                                        tempitem.Expirable = true;
+                                        tempitem.ExpireCounter = 0;
+                                        tempitem.InInventory = true;
+                                        this.inventory.AddItem(tempitem);
+                                        this.expirableItemList.Remove(item);
+                                        break;
+                                }
+
+                                //TODO: raise item picked up event so other users can see
+                                item.PickedUp();
+                            }
+                            else
+                            {
+                                writeToClient(item.Name + " is too heavy for you to carry.");
+                            }
+
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!found)
+                {
+                    writeToClient("That item isn't here.");
+                }
+            }            
             else
             {
                 this.writeToClient("It's too dark to see that item");
@@ -618,6 +834,8 @@ namespace MUDAdventure
                 this.writeToClient("You're already in a fight!");
             }
         }
+
+        #endregion
 
         private void Disconnect()
         {
@@ -845,7 +1063,14 @@ namespace MUDAdventure
             {                
                 do
                 {
-                    finalMessage = finalMessage.Remove(finalMessage.IndexOf("\b") - 1, 2);
+                    if (finalMessage.IndexOf("\b") == 0)
+                    {
+                        finalMessage = finalMessage.Remove(finalMessage.IndexOf("\b"), 1);
+                    }
+                    else
+                    {
+                        finalMessage = finalMessage.Remove(finalMessage.IndexOf("\b") - 1, 2);
+                    }
                 } while (finalMessage.Contains("\b"));
                 
             }
@@ -854,127 +1079,7 @@ namespace MUDAdventure
             return finalMessage.TrimEnd('\r', '\n');
         }
 
-        private void Move(string dir)
-        {
-            if (!this.inCombat || this.isFleeing)
-            {
-                int oldx, oldy, oldz;
-                oldx = this.x;
-                oldy = this.y;
-                oldz = this.z;                
-
-                //make sure the room we are in exists and is not null
-                if (currentRoom != null)
-                {
-                    if (this.isFleeing)
-                    {
-                        if (this.currentMoves > 5)
-                        {
-                            //check the movement direction, and see if an exit is available that way.
-                            switch (dir)
-                            {
-                                case "n":
-                                    if (currentRoom.NorthExit)
-                                    {
-                                        this.y++;
-                                    }
-                                    break;
-                                case "s":
-                                    if (currentRoom.SouthExit)
-                                    {
-                                        this.y--;
-                                    }
-                                    break;
-                                case "e":
-                                    if (currentRoom.EastExit)
-                                    {
-                                        this.x++;
-                                    }
-                                    break;
-                                case "w":
-                                    if (currentRoom.WestExit)
-                                    {
-                                        this.x--;
-                                    }
-                                    break;
-                            }
-                        }
-                        else
-                        {
-                            this.OnPlayerFleeFail(new FleeFailEventArgs(this.x, this.y, this.z, this.name));
-                            this.currentMoves -= 3;
-                        }
-                    }
-                    else if (!this.isFleeing)
-                    {
-                        if (currentMoves > 0)
-                        {
-                            //check the movement direction, and see if an exit is available that way.
-                            switch (dir)
-                            {
-                                case "n":
-                                    if (currentRoom.NorthExit)
-                                    {
-                                        this.y++;
-                                    }
-                                    break;
-                                case "s":
-                                    if (currentRoom.SouthExit)
-                                    {
-                                        this.y--;
-                                    }
-                                    break;
-                                case "e":
-                                    if (currentRoom.EastExit)
-                                    {
-                                        this.x++;
-                                    }
-                                    break;
-                                case "w":
-                                    if (currentRoom.WestExit)
-                                    {
-                                        this.x--;
-                                    }
-                                    break;
-                            }
-                        }
-
-                        //if we have moved, let's look around the new room automatically and raise the OnPlayerMoved event
-                        if (this.x != oldx || this.y != oldy || this.z != oldz)
-                        {
-                            if (this.isFleeing)
-                            {
-                                rooms.TryGetValue(this.x.ToString() + "," + this.y.ToString() + "," + this.z.ToString(), out this.currentRoom);
-                                this.Look();
-                                this.OnPlayerFled(new FledEventArgs(this.x, this.y, this.z, oldx, oldy, oldz, this.name, dir));
-                                currentMoves-=5;
-                            }
-                            this.Look();
-
-                            this.OnPlayerMoved(new PlayerMovedEventArgs(this.x, this.y, this.z, oldx, oldy, oldz, this.name, dir));
-                            this.currentMoves--;
-
-                            //getting current room.
-                            this.rooms.TryGetValue(this.x + "," + this.y + "," + this.z, out this.currentRoom);
-                        }
-                        //if we haven't moved, that means there wasn't an available exit in that direction.
-                        //let's tell the stupid player with an message
-                        else
-                        {
-                            writeToClient("You cannot go that direction.");
-                        }
-                    }
-                    else
-                    {
-                        writeToClient("You are too tired to move.");
-                    }
-                }
-            }
-            else
-            {
-                writeToClient("No way! You're in the middle of a fight!");
-            }
-        }
+        
 
         protected virtual void OnPlayerMoved(PlayerMovedEventArgs e)
         {
