@@ -1,0 +1,5 @@
+C:\Users\rswoody\documents\visual studio 2010\Projects\MUDAdventure\MUDAdventure\bin\Release\MUDAdventure.exe
+C:\Users\rswoody\documents\visual studio 2010\Projects\MUDAdventure\MUDAdventure\bin\Release\MUDAdventure.pdb
+C:\Users\rswoody\documents\visual studio 2010\Projects\MUDAdventure\MUDAdventure\obj\x86\Release\ResolveAssemblyReference.cache
+C:\Users\rswoody\documents\visual studio 2010\Projects\MUDAdventure\MUDAdventure\obj\x86\Release\MUDAdventure.exe
+C:\Users\rswoody\documents\visual studio 2010\Projects\MUDAdventure\MUDAdventure\obj\x86\Release\MUDAdventure.pdb

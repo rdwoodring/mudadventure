@@ -47,9 +47,11 @@
     <Compile Include="Custom Args\DiedEventArgs.cs" />
     <Compile Include="Custom Args\FledEventArgs.cs" />
     <Compile Include="Custom Args\FleeFailEventArgs.cs" />
+    <Compile Include="Custom Args\LightExpiredEventArgs.cs" />
     <Compile Include="Inventory.cs" />
     <Compile Include="Items\Dagger.cs" />
     <Compile Include="Items\Item.cs" />
+    <Compile Include="Items\Light.cs" />
     <Compile Include="NPC.cs" />
     <Compile Include="Player.cs" />
     <Compile Include="Custom Args\PlayerConnectedEventArgs.cs" />

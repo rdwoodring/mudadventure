@@ -8,6 +8,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Timers;
 using System.Diagnostics;
+using System.Linq;
 
 namespace MUDAdventure
 {
@@ -43,6 +44,8 @@ namespace MUDAdventure
 
         private static object playerlock = new object();
         private static object npclock = new object();
+        private static object itemlock = new object();
+        private static object expirableitemlock = new object();
         private Object hplock = new Object();
 
         /****************************************/
@@ -248,9 +251,9 @@ namespace MUDAdventure
             else if (input == String.Empty)
             {
                 writeToClient(String.Empty);
-            }            
+            }
             else if (input.StartsWith("look"))
-            {                
+            {
                 if (input.Length > 4) //has args after it
                 {
                     string args = input.Substring(5);
@@ -265,6 +268,30 @@ namespace MUDAdventure
             {
                 this.EquipmentList();
             }
+            else if (input.StartsWith("wield"))
+            {
+                if (input.Length > 5) //has args after it
+                {
+                    string args = input.Substring(6);
+                    this.Wield(args.ToLower());
+                }
+                else //no args after it
+                {
+                    this.writeToClient("Wield what?");
+                }
+            }
+            else if (input.StartsWith("hold"))
+            {
+                if (input.Length > 4) //has args after it
+                {
+                    string args = input.Substring(5);
+                    this.Hold(args.ToLower());
+                }
+                else //no args
+                {
+                    this.writeToClient("Hold what?");
+                }
+            }
             else if (input.StartsWith("kill"))
             {
                 if (input.Length > 4)
@@ -274,7 +301,7 @@ namespace MUDAdventure
                 }
                 else
                 {
-                    writeToClient("Kill who?");
+                    this.writeToClient("Kill who?");
                 }
             }
             else if (input.StartsWith("take"))
@@ -320,13 +347,99 @@ namespace MUDAdventure
             }
             else
             {
-                this.writeToClient("Unrecognized command.");
+                this.writeToClient("Unrecognized command.\r\n");
             }
 
             Debug.Print(input);
         }
 
         #region Player Command Methods
+
+        private void Hold(string args)
+        {
+            List<Item> items = this.inventory.ListInventory();
+            List<Item> itemsQuery =
+                (from item in items
+                 where item.RefNames.Contains(args)
+                 select item).ToList();
+
+            if (itemsQuery.Count >= 1)
+            {
+                if (itemsQuery[0].GetType().ToString() == "MUDAdventure.Light")
+                {
+                    StringBuilder message = new StringBuilder();
+
+                    //remove the currently equipped light, if any and return it to general inv
+                    if (this.inventory.Light != null)
+                    {
+                        message.Append("You stop using " + this.inventory.Light.Name + " as a light.\r\n");
+                        this.inventory.Light.IsLit = false;
+                        this.inventory.AddItem(this.inventory.Light);
+                    }
+
+                    //equip the new light and LIGHT ER UP
+                    this.inventory.Light = (Light)itemsQuery[0];
+                    this.inventory.Light.IsLit = true;
+
+                    //remove new light from general inv
+                    this.inventory.RemoveItem(itemsQuery[0]);
+
+                    message.Append("You light " + itemsQuery[0].Name + " and hold it aloft as a light.\r\n");
+
+                    this.inventory.Light.LightExpired += this.HandleLightExpired;
+                    this.writeToClient(message.ToString());
+                }
+                else
+                {
+                    this.writeToClient("You can't use THAT as a light!\r\n");
+                }
+            }
+            else
+            {
+                this.writeToClient("You're not carrying any such item.\r\n");
+            } 
+        }
+
+        private void Wield(string args)
+        {
+            List<Item> items = this.inventory.ListInventory();
+            List<Item> itemsQuery =
+                (from item in items
+                 where item.RefNames.Contains(args)
+                 select item).ToList();
+
+            if (itemsQuery.Count >= 1)
+            {
+                if (itemsQuery[0].GetType().ToString() == "MUDAdventure.Dagger" /* || sword || spear || etc. */)
+                {
+                    StringBuilder message = new StringBuilder();
+
+                    //remove current weapon if any and add it back to general inv
+                    if (this.inventory.Wielded != null)
+                    {
+                        message.Append("You stop wielding " + this.inventory.Wielded.Name + ".\r\n");
+                        this.inventory.AddItem(this.inventory.Wielded);
+                    }
+
+                    //wield the new weapon
+                    this.inventory.Wielded = (Weapon)itemsQuery[0];
+
+                    //remove the new weapon from general inv
+                    this.inventory.RemoveItem(itemsQuery[0]);
+
+                    message.Append("You grasp " + itemsQuery[0].Name + " in your hand and wield it as a weapon.\r\n");
+                    this.writeToClient(message.ToString());
+                }
+                else
+                {
+                    this.writeToClient("You can't wield that! Perhaps try a weapon instead?\r\n");
+                }
+            }
+            else
+            {
+                this.writeToClient("You're not carrying any such item.\r\n");
+            }            
+        }
 
         private void EquipmentList()
         {
@@ -345,6 +458,15 @@ namespace MUDAdventure
                 equipmentlist.AppendLine("Nothing");
             }
 
+            equipmentlist.Append("[Light] \t\t");
+            if (this.inventory.Light != null)
+            {
+                equipmentlist.AppendLine(this.inventory.Light.Name);
+            }
+            else
+            {
+                equipmentlist.AppendLine("Nothing");
+            }
             //TODO: add for apparel, shields, lights, etc.
 
             writeToClient(equipmentlist.ToString());
@@ -457,18 +579,18 @@ namespace MUDAdventure
                         //let's tell the stupid player with an message
                         else
                         {
-                            writeToClient("You cannot go that direction.");
+                            writeToClient("You cannot go that direction.\r\n");
                         }
                     }
                     else
                     {
-                        writeToClient("You are too tired to move.");
+                        writeToClient("You are too tired to move.\r\n");
                     }
                 }
             }
             else
             {
-                writeToClient("No way! You're in the middle of a fight!");
+                writeToClient("No way! You're in the middle of a fight!\r\n");
             }
         }
 
@@ -478,7 +600,7 @@ namespace MUDAdventure
 
             this.rooms.TryGetValue(this.x.ToString() + "," + this.y.ToString() + "," + this.z.ToString(), out currentRoom);
 
-            if (!isNight || currentRoom.LightedRoom)
+            if (!this.isNight || this.currentRoom.LightedRoom || this.inventory.Light != null)
             {
                 try
                 {
@@ -508,31 +630,74 @@ namespace MUDAdventure
                         message += "\r\n" + currentRoom.RoomName + "\r\n" + exits + "\r\n" + currentRoom.RoomDescription;
 
                         //check to see if any NPCs are here
-                        foreach (NPC npc in this.npcs)
+                        Monitor.TryEnter(npclock, 3000);
+                        try
                         {
-                            if (npc.X == this.x && npc.Y == this.y && npc.Z == this.z)
+                            List<NPC> npcQuery =
+                                (from npc in this.npcs
+                                 where npc.X == this.x && npc.Y == this.y && npc.Z == this.z
+                                 select npc).ToList();
+
+                            foreach (NPC npc in npcQuery)
                             {
                                 message += "\r\n" + npc.Name + " is here.";
                             }
                         }
+                        catch (Exception ex)
+                        {
+                            Debug.Print(ex.Message);
+                            Debug.Print(ex.StackTrace);
+                        }
+                        finally
+                        {
+                            Monitor.Exit(npclock);
+                        }
 
                         //check to see if any items are here
-                        foreach (Item item in this.itemList)
+                        Monitor.TryEnter(itemlock, 3000);
+                        try
                         {
-                            if (item.X == this.x && item.Y == this.y && item.Z == this.z)
+                            List<Item> itemQuery =
+                                (from item in this.itemList
+                                 where item.X == this.x && item.Y == this.y && item.Z == this.z
+                                 select item).ToList();
+
+                            foreach (Item item in itemQuery)
                             {
                                 message += "\r\n" + item.Name + " is lying here.";
                             }
                         }
-
-
-                        foreach (Item item in this.expirableItemList)
+                        catch (Exception ex)
                         {
-                            if (item.X == this.x && item.Y == this.y && item.Z == this.z)
+                            Debug.Print(ex.Message);
+                            Debug.Print(ex.StackTrace);
+                        }
+                        finally
+                        {
+                            Monitor.Exit(itemlock);
+                        }
+
+                        Monitor.TryEnter(expirableitemlock, 3000);
+                        try
+                        {
+                            List<Item> expItemQuery =
+                                (from expitem in this.expirableItemList
+                                 where expitem.X == this.x && expitem.Y == this.y && expitem.Z == this.z
+                                 select expitem).ToList();
+                            foreach (Item item in expItemQuery)
                             {
                                 message += "\r\n" + item.Name + " is lying here.";
                             }
                         }
+                        catch (Exception ex)
+                        {
+                            Debug.Print(ex.Message);
+                            Debug.Print(ex.StackTrace);
+                        }
+                        finally
+                        {
+                            Monitor.Exit(expirableitemlock);
+                        }                        
 
                         writeToClient(message);
                     }
@@ -557,9 +722,9 @@ namespace MUDAdventure
             //TODO: implement logic for looking at objects,  npcs, and other players
             bool found = false;
 
-            if (!isNight || currentRoom.LightedRoom)
+            if (!this.isNight || this.currentRoom.LightedRoom || this.inventory.Light != null)
             {
-
+                //TODO: fix this using LINQ instead of this clumsier way
                 Monitor.TryEnter(npclock, 3000);
                 try
                 {
@@ -579,7 +744,7 @@ namespace MUDAdventure
 
                         if (!found)
                         {
-                            writeToClient("That person or thing is not here.");
+                            writeToClient("That person or thing is not here.\r\n");
                         }
                     }
                 }
@@ -595,7 +760,7 @@ namespace MUDAdventure
             }
             else
             {
-                writeToClient("It's too dark to see that person or thing.");
+                writeToClient("It's too dark to see that person or thing.\r\n");
             }
         }
 
@@ -640,7 +805,7 @@ namespace MUDAdventure
 
             if (!found)
             {
-                writeToClient("You're not carrying any such item.");
+                writeToClient("You're not carrying any such item.\r\n");
             }
         }
 
@@ -652,11 +817,7 @@ namespace MUDAdventure
             for (int i =0; i<items.Count; i++)
             {
                 Item tempitem = items[i];                
-                
-                //TODO: find some kind of bug in here that is causing an exception.  there should be multiple items here, did one expire while in inventory or something?????
-                //found it.  can't reliably use a dictionary perhaps.  item with key 1 is removed, but then item with key of 2 isn't changed.  Using the dictionary's count property
-                //is causing us to "find" an item with a key of 1, which we have already dropped.
-                //stupid.... what a pain... thinking
+
                 invlist.AppendLine((i+1).ToString() + ". " + tempitem.Name);
             }
 
@@ -672,7 +833,7 @@ namespace MUDAdventure
 
         private void Take(string args)
         {
-            if (!this.isNight || this.currentRoom.LightedRoom)
+            if (!this.isNight || this.currentRoom.LightedRoom || this.inventory.Light != null)
             {
                 bool found = false;
 
@@ -682,18 +843,27 @@ namespace MUDAdventure
                     {
                         if ((item.Weight + this.inventory.Weight) <= this.maxCarryWeight)
                         {
-                            this.writeToClient("You pick up " + item.Name + ".");
+                            this.writeToClient("You pick up " + item.Name + ".\r\n");
                             switch (item.GetType().ToString())
                             {
                                 case "MUDAdventure.Dagger":
                                     //Dagger tempitem = new Dagger(item.WorldTimer, item.Name, item.Description, item.Weight, item.SpawnX, item.SpawnY, item.SpawnZ, item.SpawnTime, item.Spawnable, item.RefNames, ref expirableItemList, item.Damage, item.Speed);
-                                    Dagger tempitem = new Dagger((Dagger)item);
-                                    tempitem.Spawnable = false;
-                                    tempitem.SpawnTime = 0;
-                                    tempitem.Expirable = true;
-                                    tempitem.ExpireCounter = 0;
-                                    tempitem.InInventory = true;
-                                    this.inventory.AddItem(tempitem);
+                                    Dagger tempdag = new Dagger((Dagger)item);
+                                    tempdag.Spawnable = false;
+                                    tempdag.SpawnTime = 0;
+                                    tempdag.Expirable = true;
+                                    tempdag.ExpireCounter = 0;
+                                    tempdag.InInventory = true;
+                                    this.inventory.AddItem(tempdag);
+                                    break;
+                                case "MUDAdventure.Light":
+                                    Light templight = new Light((Light)item);
+                                    templight.Spawnable = false;
+                                    templight.SpawnTime = 0;
+                                    templight.Expirable = true;
+                                    templight.ExpireCounter = 0;
+                                    templight.InInventory = true;
+                                    this.inventory.AddItem(templight);
                                     break;
                             }
 
@@ -702,7 +872,7 @@ namespace MUDAdventure
                         }
                         else
                         {
-                            writeToClient(item.Name + " is too heavy for you to carry.");
+                            writeToClient(item.Name + " is too heavy for you to carry.\r\n");
                         }
 
                         found = true;
@@ -718,7 +888,7 @@ namespace MUDAdventure
                         {
                             if ((item.Weight + this.inventory.Weight) <= this.maxCarryWeight)
                             {
-                                this.writeToClient("You pick up " + item.Name + ".");
+                                this.writeToClient("You pick up " + item.Name + ".\r\n");
                                 switch (item.GetType().ToString())
                                 {
                                     case "MUDAdventure.Dagger":
@@ -739,7 +909,7 @@ namespace MUDAdventure
                             }
                             else
                             {
-                                writeToClient(item.Name + " is too heavy for you to carry.");
+                                writeToClient(item.Name + " is too heavy for you to carry.\r\n");
                             }
 
                             found = true;
@@ -750,12 +920,12 @@ namespace MUDAdventure
 
                 if (!found)
                 {
-                    writeToClient("That item isn't here.");
+                    writeToClient("That item isn't here.\r\n");
                 }
             }            
             else
             {
-                this.writeToClient("It's too dark to see that item");
+                this.writeToClient("It's too dark to see that item.\r\n");
             }
         }
 
@@ -806,7 +976,7 @@ namespace MUDAdventure
         {
             if (!this.inCombat)
             {
-                if (!this.isNight || this.currentRoom.LightedRoom)
+                if (!this.isNight || this.currentRoom.LightedRoom || this.inventory.Light != null)
                 {
                     foreach (NPC npc in npcs)
                     {
@@ -820,18 +990,18 @@ namespace MUDAdventure
                         }
                         else
                         {
-                            this.writeToClient("That person isn't here.");
+                            this.writeToClient("That person isn't here.\r\n");
                         }
                     }
                 }
                 else
                 {
-                    this.writeToClient("It's too dark to see that person.");
+                    this.writeToClient("It's too dark to see that person.\r\n");
                 }
             }
             else
             {
-                this.writeToClient("You're already in a fight!");
+                this.writeToClient("You're already in a fight!\r\n");
             }
         }
 
@@ -851,6 +1021,7 @@ namespace MUDAdventure
                 {
                     player.PlayerMoved -= this.HandlePlayerMoved;
                     player.PlayerConnected -= this.HandlePlayerConnected;
+                    player.PlayerDisconnected -= this.HandlePlayerDisconnected;
                 }
             }
 
@@ -1134,7 +1305,7 @@ namespace MUDAdventure
             if (this.currentHitpoints <= 0)
             {
                 this.Die();
-                writeToClient(attackername + " hits you, doing some damage.\r\nYou are dead.");
+                writeToClient(attackername + " hits you, doing some damage.\r\nYou are dead.\r\n");
             }
             else
             {
@@ -1180,7 +1351,7 @@ namespace MUDAdventure
         private void HandlePlayerConnected(object sender, PlayerConnectedEventArgs e)
         {
             //write to the client to let them know someone else has connected
-            this.writeToClient(e.Name + " has connected.");
+            this.writeToClient(e.Name + " has connected.\r\n");
 
             lock (playerlock)
             {
@@ -1197,19 +1368,19 @@ namespace MUDAdventure
         {
             if( e.X == this.x && e.Y == this.y && e.Z == this.z)
             {
-                this.writeToClient(e.Name + " enters the room.");
+                this.writeToClient(e.Name + " enters the room.\r\n");
             }
 
             //TODO: add which direction player left in
             if (e.OldX == this.x && e.OldY == this.y && e.OldZ == this.z)
             {
-                this.writeToClient(e.Name + " heads " + e.Direction + ".");
+                this.writeToClient(e.Name + " heads " + e.Direction + ".\r\n");
             }
         }
 
         private void HandlePlayerDisconnected(object sender, PlayerDisconnectedEventArgs e)
         {
-            this.writeToClient(e.Name + " has disconnected.");
+            this.writeToClient(e.Name + " has disconnected.\r\n");
 
             lock (playerlock)
             {
@@ -1321,6 +1492,20 @@ namespace MUDAdventure
             if (e.X == this.x && e.Y == this.y && e.Z == this.z)
             {
                 this.writeToClient(e.Name + " arrives.\r\n");
+            }
+        }
+
+        private void HandleLightExpired(object sender, LightExpiredEventArgs e)
+        {
+            if (this.currentRoom.LightedRoom || !this.isNight)
+            {
+                this.writeToClient(e.Name + " goes out.\r\n");
+                this.inventory.Light = null;
+            }
+            else
+            {
+                this.writeToClient(e.Name + " goes out, leaving you in darkness.\r\n");
+                this.inventory.Light = null;
             }
         }
 

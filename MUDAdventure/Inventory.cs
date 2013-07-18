@@ -10,6 +10,7 @@ namespace MUDAdventure
     class Inventory
     {
         private Weapon wielded;
+        private Light light;
         //private Apparel head, torso, pants, hands, feet, neck, rfinger, lfinger;
         //private Shield shield;
         private List<Item> generalInventory = new List<Item>();
@@ -42,6 +43,30 @@ namespace MUDAdventure
 
         public void RemoveItem(Item item)
         {
+            int index = -1;
+
+            Monitor.TryEnter(inventoryLock, 3000);
+            try
+            {
+                if (this.generalInventory.Contains(item))
+                {
+                    index = this.generalInventory.IndexOf(item);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.Print(ex.Message.ToString());
+                Debug.Print(ex.StackTrace.ToString());
+            }
+            finally
+            {
+                Monitor.Exit(inventoryLock);
+            }
+
+            if (index >= 0)
+            {
+                this.RemoveItem(index);
+            }
         }
 
         public void RemoveItem(int index)
@@ -80,6 +105,12 @@ namespace MUDAdventure
         {
             get { return this.wielded; }
             set { this.wielded = value; }
+        }
+
+        public Light Light
+        {
+            get { return this.light; }
+            set { this.light = value; }
         }
 
         #endregion
