@@ -106,14 +106,13 @@ namespace MUDAdventure
             //TODO: raise respawn event
         }
 
-        protected void OnTimedEvent(object sender, ElapsedEventArgs e)
+        protected virtual void OnTimedEvent(object sender, ElapsedEventArgs e)
         {
             if (this.spawnable)
             {
                 if (this.spawned == false)
                 {
                     this.respawnCounter++;
-                    Debug.Print(respawnCounter.ToString());
                     if ((this.respawnCounter * 100) >= this.spawntime)
                     {
                         this.Spawn();
@@ -125,7 +124,6 @@ namespace MUDAdventure
                 if (!this.inInventory)
                 {
                     this.expireCounter++;
-                    Debug.Print(expireCounter.ToString());
                     if ((this.expireCounter * 100) >= expireTime)
                     {
                         this.worldTimer.Elapsed -= new ElapsedEventHandler(OnTimedEvent);

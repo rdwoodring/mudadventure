@@ -57,7 +57,9 @@ namespace MUDAdventure
 
             Dagger dagger = new Dagger(this.worldTimer, "A dagger", "A very generic, basic dagger", 1, 0, 0, 0, 10000, true, new List<string> { "dagger", "dag" }, ref this.expirableItemList, 10, 10);
             itemList.Add(dagger);
-            //Weapon weapon = new Weapon("something", "blah", 3.5, 1, 1, 1, 10, 10);
+
+            Light torch = new Light(this.worldTimer, "A torch", "A simple torch made from a branch and an oily rag", .5, 0, 0, 0, 10000, true, new List<string> { "torch" }, ref this.expirableItemList, 90000);
+            itemList.Add(torch);
             
         }
 
