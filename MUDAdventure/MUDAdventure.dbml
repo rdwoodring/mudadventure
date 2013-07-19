@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?><Database Name="MUDAdventure" Class="MUDAdventureDataContext" xmlns="http://schemas.microsoft.com/linqtosql/dbml/2007">
+  <Connection Mode="AppSettings" ConnectionString="Data Source=.\SQLEXPRESS;AttachDbFilename=|DataDirectory|\MUDAdventure.mdf;Integrated Security=True;User Instance=True" SettingsObjectName="MUDAdventure.Properties.Settings" SettingsPropertyName="MUDAdventureConnectionString" Provider="System.Data.SqlClient" />
+  <Table Name="dbo.PlayerCharacters" Member="PlayerCharacters">
+    <Type Name="PlayerCharacter">
+      <Column Name="PlayerName" Type="System.String" DbType="NVarChar(20) NOT NULL" IsPrimaryKey="true" CanBeNull="false" />
+      <Column Name="Password" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="Strength" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Agility" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Intelligence" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Learning" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Constitution" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="X" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Y" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Z" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+    </Type>
+  </Table>
+</Database>
