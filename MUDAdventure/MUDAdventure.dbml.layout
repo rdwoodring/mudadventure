@@ -2,10 +2,10 @@
 <ordesignerObjectsDiagram dslVersion="1.0.0.0" absoluteBounds="0, 0, 11, 8.5" name="MUDAdventure">
   <DataContextMoniker Name="/MUDAdventureDataContext" />
   <nestedChildShapes>
-    <classShape Id="2bcb4ec7-c8c8-43d6-abb1-c0e5e51f951c" absoluteBounds="0.5, 0.5, 2, 2.7324039713541666">
+    <classShape Id="9971bebb-0f6c-4b8a-8df8-9773128d55e6" absoluteBounds="0.625, 0.5, 2, 3.5016097005208326">
       <DataClassMoniker Name="/MUDAdventureDataContext/PlayerCharacter" />
       <nestedChildShapes>
-        <elementListCompartment Id="2cb24786-45cf-44ee-9226-c3a88fcad45c" absoluteBounds="0.51500000000000012, 0.96, 1.9700000000000002, 2.1724039713541665" name="DataPropertiesCompartment" titleTextColor="Black" itemTextColor="Black" />
+        <elementListCompartment Id="900b69d3-5afa-4df8-83fa-38ec80ae3e51" absoluteBounds="0.64000000000000012, 0.96, 1.9700000000000002, 2.941609700520833" name="DataPropertiesCompartment" titleTextColor="Black" itemTextColor="Black" />
       </nestedChildShapes>
     </classShape>
   </nestedChildShapes>

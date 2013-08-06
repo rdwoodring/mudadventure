@@ -100,6 +100,14 @@ namespace MUDAdventure
 		
 		private int _Z;
 		
+		private int _Level;
+		
+		private int _ExpUntilNext;
+		
+		private System.Nullable<int> _Class;
+		
+		private System.Nullable<int> _Race;
+		
     #region Extensibility Method Definitions
     partial void OnLoaded();
     partial void OnValidate(System.Data.Linq.ChangeAction action);
@@ -124,6 +132,14 @@ namespace MUDAdventure
     partial void OnYChanged();
     partial void OnZChanging(int value);
     partial void OnZChanged();
+    partial void OnLevelChanging(int value);
+    partial void OnLevelChanged();
+    partial void OnExpUntilNextChanging(int value);
+    partial void OnExpUntilNextChanged();
+    partial void OnClassChanging(System.Nullable<int> value);
+    partial void OnClassChanged();
+    partial void OnRaceChanging(System.Nullable<int> value);
+    partial void OnRaceChanged();
     #endregion
 		
 		public PlayerCharacter()
@@ -327,6 +343,86 @@ namespace MUDAdventure
 					this._Z = value;
 					this.SendPropertyChanged("Z");
 					this.OnZChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Name="[Level]", Storage="_Level", DbType="Int")]
+		public int Level
+		{
+			get
+			{
+				return this._Level;
+			}
+			set
+			{
+				if ((this._Level != value))
+				{
+					this.OnLevelChanging(value);
+					this.SendPropertyChanging();
+					this._Level = value;
+					this.SendPropertyChanged("Level");
+					this.OnLevelChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_ExpUntilNext", AutoSync=AutoSync.OnInsert, DbType="Int")]
+		public int ExpUntilNext
+		{
+			get
+			{
+				return this._ExpUntilNext;
+			}
+			set
+			{
+				if ((this._ExpUntilNext != value))
+				{
+					this.OnExpUntilNextChanging(value);
+					this.SendPropertyChanging();
+					this._ExpUntilNext = value;
+					this.SendPropertyChanged("ExpUntilNext");
+					this.OnExpUntilNextChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_Class", DbType="Int")]
+		public System.Nullable<int> Class
+		{
+			get
+			{
+				return this._Class;
+			}
+			set
+			{
+				if ((this._Class != value))
+				{
+					this.OnClassChanging(value);
+					this.SendPropertyChanging();
+					this._Class = value;
+					this.SendPropertyChanged("Class");
+					this.OnClassChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_Race", DbType="Int")]
+		public System.Nullable<int> Race
+		{
+			get
+			{
+				return this._Race;
+			}
+			set
+			{
+				if ((this._Race != value))
+				{
+					this.OnRaceChanging(value);
+					this.SendPropertyChanging();
+					this._Race = value;
+					this.SendPropertyChanged("Race");
+					this.OnRaceChanged();
 				}
 			}
 		}

@@ -21,7 +21,7 @@ namespace MUDAdventure
         public event EventHandler<FleeFailEventArgs> PlayerFleeFail;
         public event EventHandler<AttackedAndHitEventArgs> PlayerAttackedAndHit;
 
-        private MUDAdventureDataContext mudadventureDataContext = new MUDAdventureDataContext();
+        private MUDAdventureDataContext db = new MUDAdventureDataContext();
 
         private string name; //the player character's name
         private TcpClient tcpClient;
@@ -107,187 +107,250 @@ namespace MUDAdventure
 
             this.enteringName = true;
             this.writeToClient("Welcome to my MUD\r\nWhat is your name, traveller? ");
-            string tempName = readFromClient();            
-            if (tempName != null && tempName != "")
+
+            string tempName = readFromClient();
+            while (!mainGame)
             {
-                var playerQuery =
-                    (from playercharacter in mudadventureDataContext.PlayerCharacters
-                    where playercharacter.PlayerName.ToString().ToLower() == tempName.ToLower()
-                    select playercharacter).ToList();
+                if (tempName != null && tempName != "")
+                {
+                    var playerQuery =
+                        (from playercharacter in db.PlayerCharacters
+                         where playercharacter.PlayerName.ToString().ToLower() == tempName.ToLower()
+                         select playercharacter).ToList();
 
-                if (playerQuery.Count == 1) //player exists, we should request password
-                {                    
-                    this.enteringName = false;
-
-                    int passwordAttempts = 0;
-                    bool successfullogin = false;
-
-                    this.enteringPassword = true;
-                    do
+                    if (playerQuery.Count == 1) //player exists, we should request password
                     {
-                        this.writeToClient("Please enter your password: ");
-                        string tempPass = this.readFromClient();
+                        this.enteringName = false;
 
-                        if (playerQuery[0].Password.ToString() == tempPass) //successful login.  player may now enter the main game
-                        {
-                            successfullogin = true;
-                        }
-                        else
-                        {
-                            passwordAttempts++;
-                        }
-                    }
-                    while (passwordAttempts < 4 && successfullogin == false);
+                        int passwordAttempts = 0;
+                        bool successfullogin = false;
 
-                    if (successfullogin)
-                    {
-                        //TODO: add the rest of the init logic
-                        this.enteringPassword = false;
+                        this.enteringPassword = true;
+                        do
+                        {
+                            this.writeToClient("Please enter your password: ");
+                            string tempPass = this.readFromClient();
 
-                        this.name = playerQuery[0].PlayerName.ToString();
-                        this.connected = true;
-                        this.OnPlayerConnected(new PlayerConnectedEventArgs(this.name));
+                            if (playerQuery[0].Password.ToString() == tempPass) //successful login.  player may now enter the main game
+                            {
+                                successfullogin = true;
+                            }
+                            else
+                            {
+                                passwordAttempts++;
+                            }
+                        }
+                        while (passwordAttempts < 4 && successfullogin == false);
 
-                        Monitor.TryEnter(playerlock, 3000);
-                        try
+                        if (successfullogin)
                         {
-                            this.players.CollectionChanged += playerListUpdated;
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine(this.name);
-                            Console.WriteLine("Error: " + ex.Message);
-                            Console.WriteLine("Trace: " + ex.StackTrace);
-                        }
-                        finally
-                        {
-                            Monitor.Exit(playerlock);
-                        }
+                            //TODO: add the rest of the init logic
+                            this.enteringPassword = false;
 
-                        //subscribing to events for players that are already logged in
-                        foreach (Player player in players)
-                        {
-                            Monitor.TryEnter(playerlock, 5000);
+                            this.name = playerQuery[0].PlayerName.ToString();
+                            this.connected = true;
+                            this.OnPlayerConnected(new PlayerConnectedEventArgs(this.name));
+
+                            Monitor.TryEnter(playerlock, 3000);
                             try
                             {
-                                if (player != this) //don't need to subscribe to events about ourselves, do we?
-                                {
-                                    player.PlayerConnected += this.HandlePlayerConnected;
-                                    player.PlayerMoved += this.HandlePlayerMoved;
-                                    player.PlayerDisconnected += this.HandlePlayerDisconnected;
-                                    player.PlayerFled += this.HandlePlayerFled;
-                                    player.PlayerFleeFail += this.HandlePlayerFleeFail;
-                                    player.PlayerAttackedAndHit += this.HandlePlayerAttackedAndHit;
-                                }
+                                this.players.CollectionChanged += playerListUpdated;
                             }
                             catch (Exception ex)
                             {
-                                writeToClient("Error: " + ex.Message);
-                                writeToClient("Trace: " + ex.StackTrace);
+                                Console.WriteLine(this.name);
+                                Console.WriteLine("Error: " + ex.Message);
+                                Console.WriteLine("Trace: " + ex.StackTrace);
                             }
                             finally
                             {
                                 Monitor.Exit(playerlock);
                             }
-                        }
 
-                        //subscribing to events for NPCs
-                        foreach (NPC npc in npcs)
+                            //subscribing to events for players that are already logged in
+                            foreach (Player player in players)
+                            {
+                                Monitor.TryEnter(playerlock, 5000);
+                                try
+                                {
+                                    if (player != this) //don't need to subscribe to events about ourselves, do we?
+                                    {
+                                        player.PlayerConnected += this.HandlePlayerConnected;
+                                        player.PlayerMoved += this.HandlePlayerMoved;
+                                        player.PlayerDisconnected += this.HandlePlayerDisconnected;
+                                        player.PlayerFled += this.HandlePlayerFled;
+                                        player.PlayerFleeFail += this.HandlePlayerFleeFail;
+                                        player.PlayerAttackedAndHit += this.HandlePlayerAttackedAndHit;
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    writeToClient("Error: " + ex.Message);
+                                    writeToClient("Trace: " + ex.StackTrace);
+                                }
+                                finally
+                                {
+                                    Monitor.Exit(playerlock);
+                                }
+                            }
+
+                            //subscribing to events for NPCs
+                            foreach (NPC npc in npcs)
+                            {
+                                Monitor.TryEnter(npclock, 5000);
+                                try
+                                {
+                                    npc.NPCFled += this.HandleNPCFled;
+                                    npc.NPCMoved += this.HandleNPCMoved;
+                                    npc.NPCFleeFail += this.HandleNPCFleeFail;
+                                    npc.NPCAttackedAndHit += this.HandleNPCAttackedAndHit;
+                                    npc.NPCDied += this.HandleNPCDied;
+                                    npc.NPCSpawned += this.HandleNPCSpawned;
+                                }
+                                catch (Exception ex)
+                                {
+                                    writeToClient("Error: " + ex.Message);
+                                    writeToClient("Trace: " + ex.StackTrace);
+                                }
+                                finally
+                                {
+                                    Monitor.Exit(npclock);
+                                }
+                            }
+
+                            this.mainGame = true;
+
+                            //TODO: replace with loading player's location from DB
+                            this.x = playerQuery[0].X;
+                            this.y = playerQuery[0].Y;
+                            this.z = playerQuery[0].Z;                            
+                        }
+                        else if (passwordAttempts > 3)
                         {
-                            Monitor.TryEnter(npclock, 5000);
-                            try
-                            {
-                                npc.NPCFled += this.HandleNPCFled;
-                                npc.NPCMoved += this.HandleNPCMoved;
-                                npc.NPCFleeFail += this.HandleNPCFleeFail;
-                                npc.NPCAttackedAndHit += this.HandleNPCAttackedAndHit;
-                                npc.NPCDied += this.HandleNPCDied;
-                                npc.NPCSpawned += this.HandleNPCSpawned;
-                            }
-                            catch (Exception ex)
-                            {
-                                writeToClient("Error: " + ex.Message);
-                                writeToClient("Trace: " + ex.StackTrace);
-                            }
-                            finally
-                            {
-                                Monitor.Exit(npclock);
-                            }
+                            this.writeToClient("Password authentication failed too many times.");
+                            this.Disconnect();
+                        }
+                        else
+                        {
+                            this.writeToClient("Unspecified login failure.");
+                            this.Disconnect();
                         }
 
-                        this.mainGame = true;
-
-                        //TODO: replace with loading player's location from DB
-                        this.x = playerQuery[0].X;
-                        this.y = playerQuery[0].Y;
-                        this.z = playerQuery[0].Z;
-
-                        //TODO: replace with loading player's stats from db
-                        //stats = stats;
-                        this.totalMoves = 10;
-                        this.currentMoves = this.totalMoves;
-                        this.totalHitpoints = 10;
-                        this.currentHitpoints = this.totalHitpoints;
-
-                        currentRoom = rooms[this.x.ToString() + "," + this.y.ToString() + "," + this.z.ToString()];
-
-                        this.Look();
-
-                        this.InputLoop();
                     }
-                    else if (passwordAttempts > 3)
+                    else if (playerQuery.Count > 1)
                     {
-                        this.writeToClient("Password authentication failed too many times.");
+                        //UHHH, this shouldn't ever happen and is probably a bad thing.
+                        this.writeToClient("An error occured from duplicate entries in our character database.\r\nAdministrators have been notified.  Please be patient as we correct this.");
+                        string errormessage = "Possible duplicate entries in character database: ";
+                        foreach (var player in playerQuery)
+                        {
+                            errormessage += player.PlayerName.ToString() + "\r\n";
+                        }
+
                         this.Disconnect();
                     }
                     else
                     {
-                        this.writeToClient("Unspecified login failure.");
-                        this.Disconnect();
+                        tempName = tempName[0].ToString().ToUpper() + tempName.Substring(1).ToLower();
+                        //TODO: filter unsuitable names with profanity, numbers, etc.
+
+                        this.writeToClient("This character does not seem to exist.  Would you like to create a character with the name " + tempName + "? (Y/N)");
+
+                        if (this.readFromClient().ToLower() == "y")
+                        {
+                            //we'll create a new character then
+                            PlayerCharacter newPlayer = new PlayerCharacter();
+                            newPlayer.PlayerName = tempName;
+
+                            bool match = false;
+
+                            do
+                            {
+                                this.writeToClient("Please enter your desired password:");
+                                string tempPass = this.readFromClient();
+
+                                this.writeToClient("Please re-enter your desired password:");
+                                string tempPassConfirm = this.readFromClient();
+
+                                if (tempPass == tempPassConfirm)
+                                {
+                                    match = true;
+                                    newPlayer.Password = tempPass;
+                                }
+                                else
+                                {
+                                    this.writeToClient("Your password and password confirmation did not match. Please try again.");
+                                }
+                            } while (!match);
+                           
+                            newPlayer.Level = 1;
+                            int tempStrength, tempAgility, tempIntelligence, tempLearning, tempConstitution;
+
+                            do
+                            {
+                                tempStrength = rand.Next(10, 25);
+                                tempAgility = rand.Next(10, 25);
+                                tempIntelligence = rand.Next(10, 25);
+                                tempLearning = rand.Next(10, 25);
+                                tempConstitution = rand.Next(10, 25);
+
+                                this.writeToClient("Your stats are STR:" + tempStrength.ToString() + "AGI:" + tempAgility.ToString() + "INT:" + tempIntelligence.ToString() + "LEA:" + tempLearning.ToString() + "CON:" + tempConstitution.ToString());
+                                this.writeToClient("Are these stats acceptable? (Y/N)");
+
+                            } while (this.readFromClient().ToLower() != "y");
+
+                            newPlayer.Strength = tempStrength;
+                            newPlayer.Agility = tempAgility;
+                            newPlayer.Intelligence = tempIntelligence;
+                            newPlayer.Learning = tempLearning;
+                            newPlayer.Constitution = tempConstitution;
+
+                            newPlayer.X = 0;
+                            newPlayer.Y = 0;
+                            newPlayer.Z = 0;
+
+                            //TODO: insert real EXP til next value here once i calculate the experience progression
+                            newPlayer.ExpUntilNext = 1000;
+
+                            try
+                            {
+                                db.PlayerCharacters.InsertOnSubmit(newPlayer);
+                                db.SubmitChanges();
+
+                                mainGame = true;
+
+                                this.x = 0;
+                                this.y = 0;
+                                this.z = 0;
+
+                                currentRoom = rooms[this.x.ToString() + "," + this.y.ToString() + "," + this.z.ToString()];
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine("Error: " + ex.Message);
+                                Console.WriteLine("Trace: " + ex.StackTrace);
+                            }
+                        }
+                        else
+                        {
+                            this.writeToClient("Very well.  By what name would you like to be known then?");
+                        }
                     }
-                    
                 }
-                else if (playerQuery.Count > 1)
-                {
-                    //UHHH, this shouldn't ever happen and is probably a bad thing.
-                    this.writeToClient("An error occured from duplicate entries in our character database.\r\nAdministrators have been notified.  Please be patient as we correct this.");
-                    string errormessage = "Possible duplicate entries in character database: ";
-                    foreach (var player in playerQuery)
-                    {
-                        errormessage += player.PlayerName.ToString() + "\r\n";
-                    }
-
-                    this.Disconnect();
-                }
-                else
-                {
-                    //TODO: implement new character creation logic
-                }
-
-                //this.name = tempName;
-                //this.connected = true;
-                //this.OnPlayerConnected(new PlayerConnectedEventArgs(this.name));
-
-                //Monitor.TryEnter(playerlock, 3000);
-                //try
-                //{
-                //    this.players.CollectionChanged += playerListUpdated;
-                //}
-                //catch (Exception ex)
-                //{
-                //    Console.WriteLine(this.name);
-                //    Console.WriteLine("Error: " + ex.Message);
-                //    Console.WriteLine("Trace: " + ex.StackTrace);
-                //}
-                //finally
-                //{
-                //    Monitor.Exit(playerlock);
-                //}
             }
-            
 
-            //TODO: check for player in database
-            //TODO: if player exists, ask for password                        
+            currentRoom = rooms[this.x.ToString() + "," + this.y.ToString() + "," + this.z.ToString()];
+
+            this.Look();
+
+            this.InputLoop();
+
+            //TODO: replace with loading player's stats from db
+            //stats = stats;
+            this.totalMoves = 10;
+            this.currentMoves = this.totalMoves;
+            this.totalHitpoints = 10;
+            this.currentHitpoints = this.totalHitpoints;
         }
 
         private void InputLoop()

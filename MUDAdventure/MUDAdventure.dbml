@@ -12,6 +12,10 @@
       <Column Name="X" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
       <Column Name="Y" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
       <Column Name="Z" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="[Level]" Member="Level" Type="System.Int32" DbType="Int" CanBeNull="false" />
+      <Column Name="ExpUntilNext" AutoSync="OnInsert" Type="System.Int32" DbType="Int" CanBeNull="false" />
+      <Column Name="Class" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="Race" Type="System.Int32" DbType="Int" CanBeNull="true" />
     </Type>
   </Table>
 </Database>
