@@ -21,7 +21,8 @@ namespace MUDAdventure
         public event EventHandler<FleeFailEventArgs> PlayerFleeFail;
         public event EventHandler<AttackedAndHitEventArgs> PlayerAttackedAndHit;
 
-        private MUDAdventureDataContext db = new MUDAdventureDataContext();
+        //TODO: temporary solution, what a headache this gave me.  stupid debug folder making copies of databases YAAAARRRRGHGH!
+        private MUDAdventureDataContext db = new MUDAdventureDataContext(@"C:\Users\rswoody\Documents\Visual Studio 2010\Projects\MUDAdventure\MUDAdventure\MUDAdventure.mdf");
 
         private string name; //the player character's name
         private TcpClient tcpClient;
@@ -107,16 +108,17 @@ namespace MUDAdventure
 
             this.enteringName = true;
             this.writeToClient("Welcome to my MUD\r\nWhat is your name, traveller? ");
-
-            string tempName = readFromClient();
-            while (!mainGame)
+            
+            while (!this.mainGame)
             {
+                string tempName = readFromClient();
+
                 if (tempName != null && tempName != "")
                 {
                     var playerQuery =
                         (from playercharacter in db.PlayerCharacters
-                         where playercharacter.PlayerName.ToString().ToLower() == tempName.ToLower()
-                         select playercharacter).ToList();
+                        where playercharacter.PlayerName.ToString().ToLower() == tempName.ToLower()
+                        select playercharacter).ToList();
 
                     if (playerQuery.Count == 1) //player exists, we should request password
                     {
@@ -283,7 +285,6 @@ namespace MUDAdventure
                                 }
                             } while (!match);
                            
-                            newPlayer.Level = 1;
                             int tempStrength, tempAgility, tempIntelligence, tempLearning, tempConstitution;
 
                             do
@@ -309,15 +310,28 @@ namespace MUDAdventure
                             newPlayer.Y = 0;
                             newPlayer.Z = 0;
 
+                            newPlayer.Level = 1;
+
                             //TODO: insert real EXP til next value here once i calculate the experience progression
                             newPlayer.ExpUntilNext = 1000;
 
                             try
                             {
-                                db.PlayerCharacters.InsertOnSubmit(newPlayer);
-                                db.SubmitChanges();
+                                this.db.PlayerCharacters.InsertOnSubmit(newPlayer);                                
+                                this.db.SubmitChanges();
 
-                                mainGame = true;
+                                var playerQuery2 =
+                                    (from playercharacter in db.PlayerCharacters                                     
+                                     select playercharacter).ToList();
+
+                                Debug.Print(playerQuery2.Count.ToString());
+
+                                this.writeToClient("Character created and saved to database.");
+
+                                this.name = tempName;
+
+                                this.connected = true;
+                                this.mainGame = true;
 
                                 this.x = 0;
                                 this.y = 0;
@@ -339,11 +353,7 @@ namespace MUDAdventure
                 }
             }
 
-            currentRoom = rooms[this.x.ToString() + "," + this.y.ToString() + "," + this.z.ToString()];
-
-            this.Look();
-
-            this.InputLoop();
+            currentRoom = rooms[this.x.ToString() + "," + this.y.ToString() + "," + this.z.ToString()];            
 
             //TODO: replace with loading player's stats from db
             //stats = stats;
@@ -351,6 +361,10 @@ namespace MUDAdventure
             this.currentMoves = this.totalMoves;
             this.totalHitpoints = 10;
             this.currentHitpoints = this.totalHitpoints;
+
+            this.Look();
+
+            this.InputLoop();
         }
 
         private void InputLoop()
