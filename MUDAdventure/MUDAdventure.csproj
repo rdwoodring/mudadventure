@@ -59,6 +59,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Colorizer.cs" />
     <Compile Include="Custom Args\AttackedAndHitEventArgs.cs" />
     <Compile Include="Custom Args\DiedEventArgs.cs" />
     <Compile Include="Custom Args\FledEventArgs.cs" />

@@ -21,6 +21,8 @@ namespace MUDAdventure
         public event EventHandler<FleeFailEventArgs> PlayerFleeFail;
         public event EventHandler<AttackedAndHitEventArgs> PlayerAttackedAndHit;
 
+        private static Colorizer colorizer = new Colorizer();
+
         //TODO: temporary solution, what a headache this gave me.  stupid debug folder making copies of databases YAAAARRRRGHGH!
         private MUDAdventureDataContext db = new MUDAdventureDataContext(@"C:\Users\rswoody\Documents\Visual Studio 2010\Projects\MUDAdventure\MUDAdventure\MUDAdventure.mdf");
 
@@ -107,7 +109,7 @@ namespace MUDAdventure
             this.encoder = new ASCIIEncoding();
 
             this.enteringName = true;
-            this.writeToClient("Welcome to my MUD\r\nWhat is your name, traveller? ");
+            this.writeToClient(colorizer.Colorize("Welcome to my MUD\r\nWhat is your name, traveller? ", "yellow"));
             
             while (!this.mainGame)
             {
@@ -1166,6 +1168,32 @@ namespace MUDAdventure
 
         private void Disconnect()
         {
+            //saving player
+            var playerQuery =
+                (from playercharacter in db.PlayerCharacters
+                where playercharacter.PlayerName.ToString().ToLower() == this.name.ToLower()
+                select playercharacter).First();
+
+            playerQuery.X = this.x;
+            playerQuery.Y = this.y;
+            playerQuery.Z = this.z;
+
+            //playerQuery.level = this.level;
+            //playerQuery.ExpUntilNext = this.expUntilNext;
+            this.writeToClient("Saving " + this.name + "...");
+
+            try
+            {
+                db.SubmitChanges();
+                this.writeToClient(this.name + " saved.");
+            }
+            catch (Exception ex)
+            {
+                Debug.Print(ex.Message);
+                Debug.Print(ex.StackTrace);
+            }
+
+            //disconnecting
             this.writeToClient("Disconnecting...");
 
             this.connected = false;
