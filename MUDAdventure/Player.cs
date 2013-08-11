@@ -31,6 +31,9 @@ namespace MUDAdventure
         NetworkStream clientStream;
         ASCIIEncoding encoder;
         private int x, y, z; //x, y, and z coordinates
+        private int level;
+        private int expUntilNext;
+        private int strength, agility, constitution, intelligence, learning;
         private ObservableCollection<Player> players; //a list of all connected players
         private Dictionary<string, Room> rooms; //a dictionary of all rooms where the key is "x,y,z"
         private List<NPC> npcs; //a list of all npcs
@@ -227,7 +230,16 @@ namespace MUDAdventure
                             //TODO: replace with loading player's location from DB
                             this.x = playerQuery[0].X;
                             this.y = playerQuery[0].Y;
-                            this.z = playerQuery[0].Z;                            
+                            this.z = playerQuery[0].Z;
+
+                            this.level = playerQuery[0].Level;
+                            this.expUntilNext = playerQuery[0].ExpUntilNext;
+
+                            this.strength = playerQuery[0].Strength;
+                            this.agility = playerQuery[0].Agility;
+                            this.constitution = playerQuery[0].Constitution;
+                            this.intelligence = playerQuery[0].Intelligence;
+                            this.learning = playerQuery[0].Learning;
                         }
                         else if (passwordAttempts > 3)
                         {
@@ -322,12 +334,6 @@ namespace MUDAdventure
                                 this.db.PlayerCharacters.InsertOnSubmit(newPlayer);                                
                                 this.db.SubmitChanges();
 
-                                var playerQuery2 =
-                                    (from playercharacter in db.PlayerCharacters                                     
-                                     select playercharacter).ToList();
-
-                                Debug.Print(playerQuery2.Count.ToString());
-
                                 this.writeToClient("Character created and saved to database.");
 
                                 this.name = tempName;
@@ -335,9 +341,18 @@ namespace MUDAdventure
                                 this.connected = true;
                                 this.mainGame = true;
 
-                                this.x = 0;
-                                this.y = 0;
-                                this.z = 0;
+                                this.x = newPlayer.X;
+                                this.y = newPlayer.Y;
+                                this.z = newPlayer.Z;
+
+                                this.level = newPlayer.Level;
+                                this.expUntilNext = newPlayer.ExpUntilNext;
+
+                                this.strength = newPlayer.Strength;
+                                this.agility = newPlayer.Agility;
+                                this.constitution = newPlayer.Constitution;
+                                this.intelligence = newPlayer.Intelligence;
+                                this.learning = newPlayer.Learning;
 
                                 currentRoom = rooms[this.x.ToString() + "," + this.y.ToString() + "," + this.z.ToString()];
                             }
@@ -923,49 +938,103 @@ namespace MUDAdventure
             }
         }
 
+        //TODO: fix the pick up and drop methods to use LINQ so they're not as clumsy
         private void Drop(string args)
         {
             bool found = false;
             List<Item> items = this.inventory.ListInventory();
+            Item tempitem;
 
-            if (items.Count > 0)
+
+            var itemQuery = (from item in items
+                             where item.RefNames.Contains(args)
+                             select item).ToList();
+            
+            //Debug.Print(itemQuery.GetType().ToString() + ": " + itemQuery.Name.ToString());
+
+            if (itemQuery.Any())
             {
-                for (int i = 0; i < items.Count; i++)
+                switch (itemQuery.First().GetType().ToString())
                 {
-                    if (items[i].RefNames.Contains(args))
-                    {
-                        switch (items[i].GetType().ToString())
-                        {
-                            case "MUDAdventure.Dagger":
-                                Dagger tempitem = new Dagger((Dagger)items[i]);
-                                tempitem.X = this.x;
-                                tempitem.Y = this.y;
-                                tempitem.Z = this.z;
-                                tempitem.Spawnable = false;
-                                tempitem.Expirable = true;
-                                tempitem.ExpireCounter = 0;
-                                tempitem.InInventory = false;
-                                this.expirableItemList.Add(tempitem);
-                                break;
-                            default:
-                                break;
-                        }
-
-                        //TODO: raise dropped item event so other users can see it
-                        writeToClient("You drop " + items[i].Name);
-                        this.inventory.RemoveItem(i);
-
-
-                        found = true;
+                    case "MUDAdventure.Dagger":
+                        tempitem = new Dagger((Dagger)itemQuery.First());
+                        tempitem.X = this.x;
+                        tempitem.Y = this.y;
+                        tempitem.Z = this.z;
+                        tempitem.Spawnable = false;
+                        tempitem.Expirable = true;
+                        tempitem.ExpireCounter = 0;
+                        tempitem.InInventory = false;
+                        this.expirableItemList.Add(tempitem);
                         break;
-                    }
+                    case "MUDAdventure.Light":
+                        tempitem = new Light((Light)itemQuery.First());
+                        tempitem.Spawnable = false;
+                        tempitem.SpawnTime = 0;
+                        tempitem.Expirable = true;
+                        tempitem.ExpireCounter = 0;
+                        tempitem.InInventory = true;
+                        this.expirableItemList.Add(tempitem);
+                        break;
+                    default:
+                        break;
                 }
+
+                writeToClient("You drop " + itemQuery.First().Name);
+                this.inventory.RemoveItem(itemQuery.First());
+            }
+            else
+            {
+                this.writeToClient("You're not carrying any such item.\r\n");
             }
 
-            if (!found)
-            {
-                writeToClient("You're not carrying any such item.\r\n");
-            }
+            //if (items.Count > 0)
+            //{
+            //    for (int i = 0; i < items.Count; i++)
+            //    {
+            //        if (items[i].RefNames.Contains(args))
+            //        {
+            //            switch (items[i].GetType().ToString())
+            //            {
+            //                case "MUDAdventure.Dagger":
+            //                    tempitem = new Dagger((Dagger)items[i]);
+            //                    tempitem.X = this.x;
+            //                    tempitem.Y = this.y;
+            //                    tempitem.Z = this.z;
+            //                    tempitem.Spawnable = false;
+            //                    tempitem.Expirable = true;
+            //                    tempitem.ExpireCounter = 0;
+            //                    tempitem.InInventory = false;
+            //                    this.expirableItemList.Add(tempitem);
+            //                    break;
+            //                case "MUDAdventure.Light":
+            //                    tempitem = new Light((Light)items[i]);
+            //                    tempitem.Spawnable = false;
+            //                    tempitem.SpawnTime = 0;
+            //                    tempitem.Expirable = true;
+            //                    tempitem.ExpireCounter = 0;
+            //                    tempitem.InInventory = true;
+            //                    this.expirableItemList.Add(tempitem);
+            //                    break;
+            //                default:
+            //                    break;
+            //            }
+
+            //            //TODO: raise dropped item event so other users can see it
+            //            writeToClient("You drop " + items[i].Name);
+            //            this.inventory.RemoveItem(i);
+
+
+            //            found = true;
+            //            break;
+            //        }
+            //    }
+            //}
+
+            //if (!found)
+            //{
+            //    writeToClient("You're not carrying any such item.\r\n");
+            //}
         }
 
         private void Inventory()
@@ -1061,6 +1130,15 @@ namespace MUDAdventure
                                         this.inventory.AddItem(tempitem);
                                         this.expirableItemList.Remove(item);
                                         break;
+                                    case "MUDAdventure.Light":
+                                        Light templight = new Light((Light)item);
+                                        templight.Spawnable = false;
+                                        templight.SpawnTime = 0;
+                                        templight.Expirable = true;
+                                        templight.ExpireCounter = 0;
+                                        templight.InInventory = true;
+                                        this.inventory.AddItem(templight);
+                                        break;
                                 }
 
                                 //TODO: raise item picked up event so other users can see
@@ -1126,6 +1204,7 @@ namespace MUDAdventure
             message.AppendLine("You are " + this.name + ".");
             message.AppendLine("HP: " + this.currentHitpoints + "/" + this.totalHitpoints + "; MV: " + this.currentMoves + "/" + this.totalMoves);
             message.AppendLine("You are carrying " + this.inventory.Weight + "/" + this.maxCarryWeight + " pounds.");
+            message.AppendLine("STR: " + this.strength + ", AGI: " + this.agility + ", CON: " + this.constitution + ", INT: " + this.intelligence + ", LEA: " + this.learning);
             message.AppendLine("The time is " + this.worldTime);
 
             this.writeToClient(message.ToString());
