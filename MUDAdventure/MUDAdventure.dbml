@@ -16,6 +16,32 @@
       <Column Name="ExpUntilNext" AutoSync="OnInsert" Type="System.Int32" DbType="Int" CanBeNull="false" />
       <Column Name="Class" Type="System.Int32" DbType="Int" CanBeNull="true" />
       <Column Name="Race" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Association Name="PlayerCharacter_InventoryItem" Member="InventoryItems" ThisKey="PlayerName" OtherKey="PlayerName" Type="InventoryItem" />
+    </Type>
+  </Table>
+  <Table Name="dbo.InventoryItems" Member="InventoryItems">
+    <Type Name="InventoryItem">
+      <Column Name="[Index]" Member="Index" Type="System.Int64" DbType="BigInt NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="PlayerName" Type="System.String" DbType="NVarChar(50) NOT NULL" CanBeNull="false" />
+      <Column Name="ItemName" Type="System.String" DbType="NVarChar(100) NOT NULL" CanBeNull="false" />
+      <Column Name="ItemDescription" Type="System.String" DbType="NVarChar(2000) NOT NULL" CanBeNull="false" />
+      <Column Name="ItemWeight" Type="System.Double" DbType="Float NOT NULL" CanBeNull="false" />
+      <Column Name="ItemRefNames" Type="System.String" DbType="NVarChar(4000) NOT NULL" CanBeNull="false" />
+      <Column Name="ItemDamage" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="ItemSpeed" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="ItemTotalFuel" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="ItemCurrentFuel" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="ItemInventoryStatusCode" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="ItemType" Type="System.String" DbType="NVarChar(500) NOT NULL" CanBeNull="false" />
+      <Association Name="PlayerCharacter_InventoryItem" Member="PlayerCharacter" ThisKey="PlayerName" OtherKey="PlayerName" Type="PlayerCharacter" IsForeignKey="true" />
+      <Association Name="InventoryItemStatuse_InventoryItem" Member="InventoryItemStatus" ThisKey="ItemInventoryStatusCode" OtherKey="Index" Type="InventoryItemStatus" IsForeignKey="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.InventoryItemStatuses" Member="InventoryItemStatus">
+    <Type Name="InventoryItemStatus">
+      <Column Name="[Index]" Member="Index" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
+      <Column Name="InventoryItemStatusName" Type="System.String" DbType="NVarChar(100) NOT NULL" CanBeNull="false" />
+      <Association Name="InventoryItemStatuse_InventoryItem" Member="InventoryItems" ThisKey="Index" OtherKey="ItemInventoryStatusCode" Type="InventoryItem" />
     </Type>
   </Table>
 </Database>

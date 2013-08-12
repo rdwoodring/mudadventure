@@ -112,5 +112,21 @@ namespace MUDAdventure
                 handler(this, e);
             }
         }
+
+        #region Attribute Accessors
+
+        public int CurrentFuel
+        {
+            get { return this.currentFuel; }
+            set { this.currentFuel = value; }
+        }
+
+        public int TotalFuel
+        {
+            get { return this.totalFuel; }
+            set { this.totalFuel = value; }
+        }
+
+        #endregion
     }
 }

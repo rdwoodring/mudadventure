@@ -33,6 +33,12 @@ namespace MUDAdventure
     partial void InsertPlayerCharacter(PlayerCharacter instance);
     partial void UpdatePlayerCharacter(PlayerCharacter instance);
     partial void DeletePlayerCharacter(PlayerCharacter instance);
+    partial void InsertInventoryItem(InventoryItem instance);
+    partial void UpdateInventoryItem(InventoryItem instance);
+    partial void DeleteInventoryItem(InventoryItem instance);
+    partial void InsertInventoryItemStatus(InventoryItemStatus instance);
+    partial void UpdateInventoryItemStatus(InventoryItemStatus instance);
+    partial void DeleteInventoryItemStatus(InventoryItemStatus instance);
     #endregion
 		
 		public MUDAdventureDataContext() : 
@@ -72,6 +78,22 @@ namespace MUDAdventure
 				return this.GetTable<PlayerCharacter>();
 			}
 		}
+		
+		public System.Data.Linq.Table<InventoryItem> InventoryItems
+		{
+			get
+			{
+				return this.GetTable<InventoryItem>();
+			}
+		}
+		
+		public System.Data.Linq.Table<InventoryItemStatus> InventoryItemStatus
+		{
+			get
+			{
+				return this.GetTable<InventoryItemStatus>();
+			}
+		}
 	}
 	
 	[global::System.Data.Linq.Mapping.TableAttribute(Name="dbo.PlayerCharacters")]
@@ -107,6 +129,8 @@ namespace MUDAdventure
 		private System.Nullable<int> _Class;
 		
 		private System.Nullable<int> _Race;
+		
+		private EntitySet<InventoryItem> _InventoryItems;
 		
     #region Extensibility Method Definitions
     partial void OnLoaded();
@@ -144,6 +168,7 @@ namespace MUDAdventure
 		
 		public PlayerCharacter()
 		{
+			this._InventoryItems = new EntitySet<InventoryItem>(new Action<InventoryItem>(this.attach_InventoryItems), new Action<InventoryItem>(this.detach_InventoryItems));
 			OnCreated();
 		}
 		
@@ -427,6 +452,19 @@ namespace MUDAdventure
 			}
 		}
 		
+		[global::System.Data.Linq.Mapping.AssociationAttribute(Name="PlayerCharacter_InventoryItem", Storage="_InventoryItems", ThisKey="PlayerName", OtherKey="PlayerName")]
+		public EntitySet<InventoryItem> InventoryItems
+		{
+			get
+			{
+				return this._InventoryItems;
+			}
+			set
+			{
+				this._InventoryItems.Assign(value);
+			}
+		}
+		
 		public event PropertyChangingEventHandler PropertyChanging;
 		
 		public event PropertyChangedEventHandler PropertyChanged;
@@ -445,6 +483,540 @@ namespace MUDAdventure
 			{
 				this.PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
 			}
+		}
+		
+		private void attach_InventoryItems(InventoryItem entity)
+		{
+			this.SendPropertyChanging();
+			entity.PlayerCharacter = this;
+		}
+		
+		private void detach_InventoryItems(InventoryItem entity)
+		{
+			this.SendPropertyChanging();
+			entity.PlayerCharacter = null;
+		}
+	}
+	
+	[global::System.Data.Linq.Mapping.TableAttribute(Name="dbo.InventoryItems")]
+	public partial class InventoryItem : INotifyPropertyChanging, INotifyPropertyChanged
+	{
+		
+		private static PropertyChangingEventArgs emptyChangingEventArgs = new PropertyChangingEventArgs(String.Empty);
+		
+		private long _Index;
+		
+		private string _PlayerName;
+		
+		private string _ItemName;
+		
+		private string _ItemDescription;
+		
+		private double _ItemWeight;
+		
+		private string _ItemRefNames;
+		
+		private System.Nullable<int> _ItemDamage;
+		
+		private System.Nullable<int> _ItemSpeed;
+		
+		private System.Nullable<int> _ItemTotalFuel;
+		
+		private System.Nullable<int> _ItemCurrentFuel;
+		
+		private int _ItemInventoryStatusCode;
+		
+		private string _ItemType;
+		
+		private EntityRef<PlayerCharacter> _PlayerCharacter;
+		
+		private EntityRef<InventoryItemStatus> _InventoryItemStatus;
+		
+    #region Extensibility Method Definitions
+    partial void OnLoaded();
+    partial void OnValidate(System.Data.Linq.ChangeAction action);
+    partial void OnCreated();
+    partial void OnIndexChanging(long value);
+    partial void OnIndexChanged();
+    partial void OnPlayerNameChanging(string value);
+    partial void OnPlayerNameChanged();
+    partial void OnItemNameChanging(string value);
+    partial void OnItemNameChanged();
+    partial void OnItemDescriptionChanging(string value);
+    partial void OnItemDescriptionChanged();
+    partial void OnItemWeightChanging(double value);
+    partial void OnItemWeightChanged();
+    partial void OnItemRefNamesChanging(string value);
+    partial void OnItemRefNamesChanged();
+    partial void OnItemDamageChanging(System.Nullable<int> value);
+    partial void OnItemDamageChanged();
+    partial void OnItemSpeedChanging(System.Nullable<int> value);
+    partial void OnItemSpeedChanged();
+    partial void OnItemTotalFuelChanging(System.Nullable<int> value);
+    partial void OnItemTotalFuelChanged();
+    partial void OnItemCurrentFuelChanging(System.Nullable<int> value);
+    partial void OnItemCurrentFuelChanged();
+    partial void OnItemInventoryStatusCodeChanging(int value);
+    partial void OnItemInventoryStatusCodeChanged();
+    partial void OnItemTypeChanging(string value);
+    partial void OnItemTypeChanged();
+    #endregion
+		
+		public InventoryItem()
+		{
+			this._PlayerCharacter = default(EntityRef<PlayerCharacter>);
+			this._InventoryItemStatus = default(EntityRef<InventoryItemStatus>);
+			OnCreated();
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Name="[Index]", Storage="_Index", AutoSync=AutoSync.OnInsert, DbType="BigInt NOT NULL IDENTITY", IsPrimaryKey=true, IsDbGenerated=true)]
+		public long Index
+		{
+			get
+			{
+				return this._Index;
+			}
+			set
+			{
+				if ((this._Index != value))
+				{
+					this.OnIndexChanging(value);
+					this.SendPropertyChanging();
+					this._Index = value;
+					this.SendPropertyChanged("Index");
+					this.OnIndexChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_PlayerName", DbType="NVarChar(50) NOT NULL", CanBeNull=false)]
+		public string PlayerName
+		{
+			get
+			{
+				return this._PlayerName;
+			}
+			set
+			{
+				if ((this._PlayerName != value))
+				{
+					if (this._PlayerCharacter.HasLoadedOrAssignedValue)
+					{
+						throw new System.Data.Linq.ForeignKeyReferenceAlreadyHasValueException();
+					}
+					this.OnPlayerNameChanging(value);
+					this.SendPropertyChanging();
+					this._PlayerName = value;
+					this.SendPropertyChanged("PlayerName");
+					this.OnPlayerNameChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_ItemName", DbType="NVarChar(100) NOT NULL", CanBeNull=false)]
+		public string ItemName
+		{
+			get
+			{
+				return this._ItemName;
+			}
+			set
+			{
+				if ((this._ItemName != value))
+				{
+					this.OnItemNameChanging(value);
+					this.SendPropertyChanging();
+					this._ItemName = value;
+					this.SendPropertyChanged("ItemName");
+					this.OnItemNameChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_ItemDescription", DbType="NVarChar(2000) NOT NULL", CanBeNull=false)]
+		public string ItemDescription
+		{
+			get
+			{
+				return this._ItemDescription;
+			}
+			set
+			{
+				if ((this._ItemDescription != value))
+				{
+					this.OnItemDescriptionChanging(value);
+					this.SendPropertyChanging();
+					this._ItemDescription = value;
+					this.SendPropertyChanged("ItemDescription");
+					this.OnItemDescriptionChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_ItemWeight", DbType="Float NOT NULL")]
+		public double ItemWeight
+		{
+			get
+			{
+				return this._ItemWeight;
+			}
+			set
+			{
+				if ((this._ItemWeight != value))
+				{
+					this.OnItemWeightChanging(value);
+					this.SendPropertyChanging();
+					this._ItemWeight = value;
+					this.SendPropertyChanged("ItemWeight");
+					this.OnItemWeightChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_ItemRefNames", DbType="NVarChar(4000) NOT NULL", CanBeNull=false)]
+		public string ItemRefNames
+		{
+			get
+			{
+				return this._ItemRefNames;
+			}
+			set
+			{
+				if ((this._ItemRefNames != value))
+				{
+					this.OnItemRefNamesChanging(value);
+					this.SendPropertyChanging();
+					this._ItemRefNames = value;
+					this.SendPropertyChanged("ItemRefNames");
+					this.OnItemRefNamesChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_ItemDamage", DbType="Int")]
+		public System.Nullable<int> ItemDamage
+		{
+			get
+			{
+				return this._ItemDamage;
+			}
+			set
+			{
+				if ((this._ItemDamage != value))
+				{
+					this.OnItemDamageChanging(value);
+					this.SendPropertyChanging();
+					this._ItemDamage = value;
+					this.SendPropertyChanged("ItemDamage");
+					this.OnItemDamageChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_ItemSpeed", DbType="Int")]
+		public System.Nullable<int> ItemSpeed
+		{
+			get
+			{
+				return this._ItemSpeed;
+			}
+			set
+			{
+				if ((this._ItemSpeed != value))
+				{
+					this.OnItemSpeedChanging(value);
+					this.SendPropertyChanging();
+					this._ItemSpeed = value;
+					this.SendPropertyChanged("ItemSpeed");
+					this.OnItemSpeedChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_ItemTotalFuel", DbType="Int")]
+		public System.Nullable<int> ItemTotalFuel
+		{
+			get
+			{
+				return this._ItemTotalFuel;
+			}
+			set
+			{
+				if ((this._ItemTotalFuel != value))
+				{
+					this.OnItemTotalFuelChanging(value);
+					this.SendPropertyChanging();
+					this._ItemTotalFuel = value;
+					this.SendPropertyChanged("ItemTotalFuel");
+					this.OnItemTotalFuelChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_ItemCurrentFuel", DbType="Int")]
+		public System.Nullable<int> ItemCurrentFuel
+		{
+			get
+			{
+				return this._ItemCurrentFuel;
+			}
+			set
+			{
+				if ((this._ItemCurrentFuel != value))
+				{
+					this.OnItemCurrentFuelChanging(value);
+					this.SendPropertyChanging();
+					this._ItemCurrentFuel = value;
+					this.SendPropertyChanged("ItemCurrentFuel");
+					this.OnItemCurrentFuelChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_ItemInventoryStatusCode", DbType="Int NOT NULL")]
+		public int ItemInventoryStatusCode
+		{
+			get
+			{
+				return this._ItemInventoryStatusCode;
+			}
+			set
+			{
+				if ((this._ItemInventoryStatusCode != value))
+				{
+					if (this._InventoryItemStatus.HasLoadedOrAssignedValue)
+					{
+						throw new System.Data.Linq.ForeignKeyReferenceAlreadyHasValueException();
+					}
+					this.OnItemInventoryStatusCodeChanging(value);
+					this.SendPropertyChanging();
+					this._ItemInventoryStatusCode = value;
+					this.SendPropertyChanged("ItemInventoryStatusCode");
+					this.OnItemInventoryStatusCodeChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_ItemType", DbType="NVarChar(500) NOT NULL", CanBeNull=false)]
+		public string ItemType
+		{
+			get
+			{
+				return this._ItemType;
+			}
+			set
+			{
+				if ((this._ItemType != value))
+				{
+					this.OnItemTypeChanging(value);
+					this.SendPropertyChanging();
+					this._ItemType = value;
+					this.SendPropertyChanged("ItemType");
+					this.OnItemTypeChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.AssociationAttribute(Name="PlayerCharacter_InventoryItem", Storage="_PlayerCharacter", ThisKey="PlayerName", OtherKey="PlayerName", IsForeignKey=true)]
+		public PlayerCharacter PlayerCharacter
+		{
+			get
+			{
+				return this._PlayerCharacter.Entity;
+			}
+			set
+			{
+				PlayerCharacter previousValue = this._PlayerCharacter.Entity;
+				if (((previousValue != value) 
+							|| (this._PlayerCharacter.HasLoadedOrAssignedValue == false)))
+				{
+					this.SendPropertyChanging();
+					if ((previousValue != null))
+					{
+						this._PlayerCharacter.Entity = null;
+						previousValue.InventoryItems.Remove(this);
+					}
+					this._PlayerCharacter.Entity = value;
+					if ((value != null))
+					{
+						value.InventoryItems.Add(this);
+						this._PlayerName = value.PlayerName;
+					}
+					else
+					{
+						this._PlayerName = default(string);
+					}
+					this.SendPropertyChanged("PlayerCharacter");
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.AssociationAttribute(Name="InventoryItemStatuse_InventoryItem", Storage="_InventoryItemStatus", ThisKey="ItemInventoryStatusCode", OtherKey="Index", IsForeignKey=true)]
+		public InventoryItemStatus InventoryItemStatus
+		{
+			get
+			{
+				return this._InventoryItemStatus.Entity;
+			}
+			set
+			{
+				InventoryItemStatus previousValue = this._InventoryItemStatus.Entity;
+				if (((previousValue != value) 
+							|| (this._InventoryItemStatus.HasLoadedOrAssignedValue == false)))
+				{
+					this.SendPropertyChanging();
+					if ((previousValue != null))
+					{
+						this._InventoryItemStatus.Entity = null;
+						previousValue.InventoryItems.Remove(this);
+					}
+					this._InventoryItemStatus.Entity = value;
+					if ((value != null))
+					{
+						value.InventoryItems.Add(this);
+						this._ItemInventoryStatusCode = value.Index;
+					}
+					else
+					{
+						this._ItemInventoryStatusCode = default(int);
+					}
+					this.SendPropertyChanged("InventoryItemStatus");
+				}
+			}
+		}
+		
+		public event PropertyChangingEventHandler PropertyChanging;
+		
+		public event PropertyChangedEventHandler PropertyChanged;
+		
+		protected virtual void SendPropertyChanging()
+		{
+			if ((this.PropertyChanging != null))
+			{
+				this.PropertyChanging(this, emptyChangingEventArgs);
+			}
+		}
+		
+		protected virtual void SendPropertyChanged(String propertyName)
+		{
+			if ((this.PropertyChanged != null))
+			{
+				this.PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+			}
+		}
+	}
+	
+	[global::System.Data.Linq.Mapping.TableAttribute(Name="dbo.InventoryItemStatuses")]
+	public partial class InventoryItemStatus : INotifyPropertyChanging, INotifyPropertyChanged
+	{
+		
+		private static PropertyChangingEventArgs emptyChangingEventArgs = new PropertyChangingEventArgs(String.Empty);
+		
+		private int _Index;
+		
+		private string _InventoryItemStatusName;
+		
+		private EntitySet<InventoryItem> _InventoryItems;
+		
+    #region Extensibility Method Definitions
+    partial void OnLoaded();
+    partial void OnValidate(System.Data.Linq.ChangeAction action);
+    partial void OnCreated();
+    partial void OnIndexChanging(int value);
+    partial void OnIndexChanged();
+    partial void OnInventoryItemStatusNameChanging(string value);
+    partial void OnInventoryItemStatusNameChanged();
+    #endregion
+		
+		public InventoryItemStatus()
+		{
+			this._InventoryItems = new EntitySet<InventoryItem>(new Action<InventoryItem>(this.attach_InventoryItems), new Action<InventoryItem>(this.detach_InventoryItems));
+			OnCreated();
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Name="[Index]", Storage="_Index", AutoSync=AutoSync.OnInsert, DbType="Int NOT NULL IDENTITY", IsPrimaryKey=true, IsDbGenerated=true)]
+		public int Index
+		{
+			get
+			{
+				return this._Index;
+			}
+			set
+			{
+				if ((this._Index != value))
+				{
+					this.OnIndexChanging(value);
+					this.SendPropertyChanging();
+					this._Index = value;
+					this.SendPropertyChanged("Index");
+					this.OnIndexChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_InventoryItemStatusName", DbType="NVarChar(100) NOT NULL", CanBeNull=false)]
+		public string InventoryItemStatusName
+		{
+			get
+			{
+				return this._InventoryItemStatusName;
+			}
+			set
+			{
+				if ((this._InventoryItemStatusName != value))
+				{
+					this.OnInventoryItemStatusNameChanging(value);
+					this.SendPropertyChanging();
+					this._InventoryItemStatusName = value;
+					this.SendPropertyChanged("InventoryItemStatusName");
+					this.OnInventoryItemStatusNameChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.AssociationAttribute(Name="InventoryItemStatuse_InventoryItem", Storage="_InventoryItems", ThisKey="Index", OtherKey="ItemInventoryStatusCode")]
+		public EntitySet<InventoryItem> InventoryItems
+		{
+			get
+			{
+				return this._InventoryItems;
+			}
+			set
+			{
+				this._InventoryItems.Assign(value);
+			}
+		}
+		
+		public event PropertyChangingEventHandler PropertyChanging;
+		
+		public event PropertyChangedEventHandler PropertyChanged;
+		
+		protected virtual void SendPropertyChanging()
+		{
+			if ((this.PropertyChanging != null))
+			{
+				this.PropertyChanging(this, emptyChangingEventArgs);
+			}
+		}
+		
+		protected virtual void SendPropertyChanged(String propertyName)
+		{
+			if ((this.PropertyChanged != null))
+			{
+				this.PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+			}
+		}
+		
+		private void attach_InventoryItems(InventoryItem entity)
+		{
+			this.SendPropertyChanging();
+			entity.InventoryItemStatus = this;
+		}
+		
+		private void detach_InventoryItems(InventoryItem entity)
+		{
+			this.SendPropertyChanging();
+			entity.InventoryItemStatus = null;
 		}
 	}
 }

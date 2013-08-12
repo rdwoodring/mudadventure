@@ -1262,6 +1262,36 @@ namespace MUDAdventure
             playerQuery.Y = this.y;
             playerQuery.Z = this.z;
 
+            //now to save items in db
+            List<Item> items = this.inventory.ListInventory();
+            foreach (Item item in items)
+            {
+                InventoryItem invItem = new InventoryItem();
+                invItem.PlayerName = this.name;
+                invItem.ItemName = item.Name;
+                invItem.ItemDescription = item.Description;
+                invItem.ItemWeight = item.Weight;
+                invItem.ItemRefNames = String.Join(",", item.RefNames.ToArray());
+                invItem.ItemInventoryStatusCode = 10;
+                invItem.ItemType = item.GetType().ToString();
+
+                switch (item.GetType().ToString())
+                {
+                    case "MUDAdventure.Dagger":
+                        Dagger tempdag = new Dagger((Dagger)item);
+                        invItem.ItemDamage = tempdag.Damage;
+                        invItem.ItemSpeed = tempdag.Speed;
+                        break;
+                    case "MUDAdventure.Light":
+                        Light templight = new Light((Light)item);
+                        invItem.ItemCurrentFuel = templight.CurrentFuel;
+                        invItem.ItemTotalFuel = templight.TotalFuel;
+                        break;
+                }
+
+                playerQuery.InventoryItems.Add(invItem);
+            }
+
             //playerQuery.level = this.level;
             //playerQuery.ExpUntilNext = this.expUntilNext;
             this.writeToClient("Saving " + this.name + "...");
