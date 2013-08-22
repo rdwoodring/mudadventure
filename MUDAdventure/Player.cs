@@ -226,8 +226,7 @@ namespace MUDAdventure
                             }
 
                             this.mainGame = true;
-
-                            //TODO: replace with loading player's location from DB
+                            
                             this.x = playerQuery[0].X;
                             this.y = playerQuery[0].Y;
                             this.z = playerQuery[0].Z;
@@ -240,6 +239,29 @@ namespace MUDAdventure
                             this.constitution = playerQuery[0].Constitution;
                             this.intelligence = playerQuery[0].Intelligence;
                             this.learning = playerQuery[0].Learning;
+
+                            var itemsQuery = (from item in db.InventoryItems
+                                              where item.PlayerName.ToLower() == this.name.ToLower()
+                                              select item).ToList();
+
+                            foreach (InventoryItem item in itemsQuery)
+                            {
+                                if (item.InventoryItemStatus.InventoryItemStatusName == "generalinventory")
+                                {
+                                    //switch (item.ItemType)
+                                    //{
+                                    //    case "MUDAdventure.Dagger":
+                                    //        Dagger tempdag = new Dagger(this.worldTimer, item.ItemName, item.ItemDescription, item.ItemWeight, 0, 0, 0, 0, false, new List<string>(item.ItemRefNames.Split(',')), this.expirableItemList, item.ItemDamage, item.ItemSpeed); 
+                                    //        tempdag.Spawnable = false;
+                                    //        tempdag.SpawnTime = 0;
+                                    //        tempdag.Expirable = true;
+                                    //        tempdag.ExpireCounter = 0;
+                                    //        tempdag.InInventory = true;
+                                    //        this.inventory.AddItem(tempdag);
+                                    //        break;
+                                    //}
+                                }
+                            }
                         }
                         else if (passwordAttempts > 3)
                         {
@@ -553,7 +575,8 @@ namespace MUDAdventure
 
                     //equip the new light and LIGHT ER UP
                     this.inventory.Light = (Light)itemsQuery[0];
-                    this.inventory.Light.IsLit = true;
+                    //this.inventory.Light.IsLit = true;
+                    this.inventory.Light.Ignite();
 
                     //remove new light from general inv
                     this.inventory.RemoveItem(itemsQuery[0]);

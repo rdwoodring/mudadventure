@@ -34,12 +34,9 @@ namespace MUDAdventure
 
             this.refNames = weapon.refNames;
             this.expirableItemList = weapon.expirableItemList;
-            this.worldTimer = weapon.worldTimer;
 
             this.damage = weapon.damage;
             this.speed = weapon.speed;
-
-            this.worldTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
         }
 
         public Weapon(System.Timers.Timer timer, string n, string d, double w, int spx, int spy, int spz, int sptime, bool spawn, List<string> rn, ref List<Item> expirableItemList, int dmg, int spd) : base(timer, n, d, w, spx, spy, spz, sptime, spawn, rn, ref expirableItemList)

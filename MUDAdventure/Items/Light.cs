@@ -13,42 +13,44 @@ namespace MUDAdventure
 
         private int totalFuel, currentFuel;
         private bool isLit;
+        private Timer fuelTimer;
 
         public Light() { }
 
-        public Light(Light light)
+        public Light(Light light) :base(light)
         {
-            this.name = light.name;
-            this.description = light.description;
+            //this.name = light.name;
+            //this.description = light.description;
 
-            this.weight = light.weight;
+            //this.weight = light.weight;
 
-            this.spawnX = light.spawnX;
-            this.spawnY = light.spawnY;
-            this.spawnZ = light.spawnZ;
+            //this.spawnX = light.spawnX;
+            //this.spawnY = light.spawnY;
+            //this.spawnZ = light.spawnZ;
 
-            this.spawntime = light.spawntime;
-            this.respawnCounter = light.respawnCounter;
+            //this.spawntime = light.spawntime;
+            //this.respawnCounter = light.respawnCounter;
 
-            this.expireCounter = 0;
+            //this.expireCounter = 0;
 
-            this.spawnable = light.spawnable;
-            this.expirable = light.expirable;
-            this.spawned = light.spawned;
+            //this.spawnable = light.spawnable;
+            //this.expirable = light.expirable;
+            //this.spawned = light.spawned;
 
-            this.refNames = light.refNames;
-            this.expirableItemList = light.expirableItemList;
-
-            this.worldTimer = light.worldTimer;
-            this.worldTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
+            //this.refNames = light.refNames;
+            //this.expirableItemList = light.expirableItemList;
 
             this.totalFuel = light.totalFuel;
             this.currentFuel = light.currentFuel;
 
             this.isLit = false;
+            this.fuelTimer = new Timer();
+
+            this.fuelTimer.Elapsed += new ElapsedEventHandler(fuelTimer_Elapsed);
         }
 
-        public Light(System.Timers.Timer timer, string n, string d, double w, int spx, int spy, int spz, int sptime, bool spawn, List<string> rn, ref List<Item> expirableItemList, int fuel) : base(timer, n, d, w, spx, spy, spz, sptime, spawn, rn, ref expirableItemList)
+        //for respawnable items
+        public Light(string n, string d, double w, int spx, int spy, int spz, int sptime, bool spawn, List<string> rn, int fuel) : base(n, d, w, spx, spy, spz, sptime, spawn, rn)
         {
             this.totalFuel = fuel;
             this.currentFuel = totalFuel;
@@ -56,52 +58,22 @@ namespace MUDAdventure
             this.isLit = false;
         }
 
-        protected override void OnTimedEvent(object sender, ElapsedEventArgs e)
+        //for expirable items
+        public Light(string n, string d, double w, bool expire, List<string> rn, ref List<Item> expirableItemList, int curfuel, int totfuel) : base(n, d, w, expire, rn, ref expirableItemList)
         {
-            if (this.spawnable)
-            {
-                if (this.spawned == false)
-                {
-                    this.respawnCounter++;
-                    if ((this.respawnCounter * 100) >= this.spawntime)
-                    {
-                        this.Spawn();
-                    }
-                }
-            }
-            else if (this.expirable)
-            {
-                if (!this.inInventory)
-                {
-                    this.expireCounter++;
-                    if ((this.expireCounter * 100) >= expireTime)
-                    {
-                        this.worldTimer.Elapsed -= new ElapsedEventHandler(OnTimedEvent);
+            this.totalFuel = totfuel;
+            this.currentFuel = curfuel;
 
-                        this.expirableItemList.Remove(this);
-                    }
-                }
-            }
-
-            if (this.isLit)
-            {                
-                this.currentFuel-= 100;
-                Debug.Print(this.currentFuel.ToString() + "/" + this.totalFuel.ToString());
-
-                if (this.currentFuel <= 0)
-                {
-                    this.isLit = false;
-                    //TODO: raise a "light expired event" so that this item is removed from inventory
-                    this.OnLightExpired(new LightExpiredEventArgs(this.name));
-                }
-            }
+            this.isLit = false;
         }
 
-        public bool IsLit
+        public void Ignite()
         {
-            get { return this.isLit; }
-            set { this.isLit = value; }
-        }
+            this.isLit = true;
+            this.fuelTimer.Interval = this.currentFuel;
+            this.fuelTimer.Enabled = true;
+            this.fuelTimer.Start();
+        }               
 
         protected virtual void OnLightExpired(LightExpiredEventArgs e)
         {
@@ -111,6 +83,14 @@ namespace MUDAdventure
             {
                 handler(this, e);
             }
+        }
+
+        //womp womp, light's out of fuel
+        protected void fuelTimer_Elapsed(object sender, EventArgs e)
+        {
+            this.isLit = false;
+            //TODO: raise a "light expired event" so that this item is removed from inventory
+            this.OnLightExpired(new LightExpiredEventArgs(this.name));
         }
 
         #region Attribute Accessors
@@ -125,6 +105,12 @@ namespace MUDAdventure
         {
             get { return this.totalFuel; }
             set { this.totalFuel = value; }
+        }
+
+        public bool IsLit
+        {
+            get { return this.isLit; }
+            set { this.isLit = value; }
         }
 
         #endregion

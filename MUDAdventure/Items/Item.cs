@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Timers;
 using System.Diagnostics;
+using System.Threading;
 
 namespace MUDAdventure
 {
@@ -11,6 +12,8 @@ namespace MUDAdventure
     //set it to abstract, because we don't want any actualy instances of class Item, only it's descendents
     abstract class Item
     {
+        static object expirableItemListLock = new object();
+
         protected const int expireTime = 60000;
 
         protected string name, description;
@@ -19,7 +22,9 @@ namespace MUDAdventure
         protected bool spawnable, expirable, inInventory, spawned;
         protected List<string> refNames;
         protected List<Item> expirableItemList;
-        protected System.Timers.Timer worldTimer;
+        //protected System.Timers.Timer worldTimer;
+        protected System.Timers.Timer respawnTimer;
+        protected System.Timers.Timer expirationTimer;
 
         public Item() { }
 
@@ -45,13 +50,14 @@ namespace MUDAdventure
             this.spawned = item.spawned;
 
             this.refNames = item.refNames;
-            this.expirableItemList = item.expirableItemList;
+            //this.expirableItemList = item.expirableItemList;
             
-            this.worldTimer = item.worldTimer;
-            this.worldTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
+            //this.worldTimer = item.worldTimer;
+            //this.worldTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
         }
 
-        public Item(System.Timers.Timer timer, string n, string d, double w, int spx, int spy, int spz, int sptime, bool spawn, List<string> rn, ref List<Item> expirableItemList)
+        //for respawnable items
+        public Item(string n, string d, double w, int spx, int spy, int spz, int sptime, bool spawn, List<string> rn)
         {
             this.name = n;
             this.description = d;
@@ -69,16 +75,39 @@ namespace MUDAdventure
             this.spawntime = sptime;
             this.spawnable = spawn;
 
-            this.expirable = false;
+            //this.expirable = false;
 
             this.refNames = rn;
 
             this.spawned = true;
 
-            this.worldTimer = timer;
-            this.worldTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
+            this.respawnTimer.Interval = sptime;
+            this.respawnTimer.Elapsed += new ElapsedEventHandler(respawnTimer_Elapsed);
 
-            this.respawnCounter = 0;
+            this.respawnCounter = 0;            
+        }
+
+        //for expirable items
+        public Item(string n, string d, double w, bool expire, List<string> rn, ref List<Item> expirableItemList)
+        {
+            this.name = n;
+            this.description = d;
+
+            this.weight = w;
+
+            this.x = this.spawnX;
+            this.y = this.spawnY;
+            this.z = this.spawnZ;
+
+            this.expirable = expire;
+
+            this.refNames = rn;
+
+            this.spawned = true;
+
+            this.expirationTimer.Interval = expireTime;
+            this.expirationTimer.Elapsed += new ElapsedEventHandler(expirationTimer_Elapsed);
+
 
             this.expirableItemList = expirableItemList;
         }
@@ -92,6 +121,17 @@ namespace MUDAdventure
             this.z = -9999;
 
             //TODO: raise picked up event
+
+            //if the item is spawnable we need to start the respawn counter
+            //otherwise, if it is expirable, we'll do nothing other than move it to the temporary holding room where it will eventually expire and
+            //references to it will be removed (hopefully)
+            //this works because when a player picks up an expirable item, the really only pick up a "copY" of it
+            //when it's dropped, a "copy" of it is dropped with a full expiration counter at initialization
+            if (this.spawnable == true)
+            {
+                this.respawnTimer.Enabled = true;
+                this.respawnTimer.Start();
+            }
         }
 
         protected void Spawn()
@@ -99,40 +139,72 @@ namespace MUDAdventure
             this.x = this.spawnX;
             this.y = this.spawnY;
             this.z = this.spawnZ;
-
-            this.respawnCounter = 0;
+            
             this.spawned = true;
 
             //TODO: raise respawn event
         }
 
-        protected virtual void OnTimedEvent(object sender, ElapsedEventArgs e)
+        protected void expirationTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            if (this.spawnable)
-            {
-                if (this.spawned == false)
-                {
-                    this.respawnCounter++;
-                    if ((this.respawnCounter * 100) >= this.spawntime)
-                    {
-                        this.Spawn();
-                    }
-                }
-            }
-            else if (this.expirable)
-            {
-                if (!this.inInventory)
-                {
-                    this.expireCounter++;
-                    if ((this.expireCounter * 100) >= expireTime)
-                    {
-                        this.worldTimer.Elapsed -= new ElapsedEventHandler(OnTimedEvent);
+            this.expirationTimer.Stop();
+            this.expirationTimer.Enabled = false;
 
-                        this.expirableItemList.Remove(this);
-                    }
-                }
+            this.expirationTimer.Elapsed -= new ElapsedEventHandler(expirationTimer_Elapsed);
+
+            Monitor.TryEnter(expirableItemListLock, 3000);
+
+            try
+            {
+                this.expirableItemList.Remove(this);
+            }
+            catch (Exception ex)
+            {
+                Debug.Print(ex.Message);
+                Debug.Print(ex.StackTrace);
+            }
+            finally
+            {
+                Monitor.Exit(expirableItemListLock);
             }
         }
+
+        protected void respawnTimer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            if (this.spawned == false)
+            {
+                this.Spawn();
+                this.respawnTimer.Stop();
+            }
+        }
+
+        //protected virtual void OnTimedEvent(object sender, ElapsedEventArgs e)
+        //{
+        //    if (this.spawnable)
+        //    {
+        //        if (this.spawned == false)
+        //        {
+        //            this.respawnCounter++;
+        //            if ((this.respawnCounter * 100) >= this.spawntime)
+        //            {
+        //                this.Spawn();
+        //            }
+        //        }
+        //    }
+        //    else if (this.expirable)
+        //    {
+        //        if (!this.inInventory)
+        //        {
+        //            this.expireCounter++;
+        //            if ((this.expireCounter * 100) >= expireTime)
+        //            {
+        //                this.worldTimer.Elapsed -= new ElapsedEventHandler(OnTimedEvent);
+
+        //                this.expirableItemList.Remove(this);
+        //            }
+        //        }
+        //    }
+        //}
 
         #region Attribute Accessors
 
@@ -194,12 +266,6 @@ namespace MUDAdventure
         {
             get { return this.expireCounter; }
             set { this.expireCounter = value; }
-        }
-
-        public System.Timers.Timer WorldTimer
-        {
-            get { return this.worldTimer; }
-            set { this.worldTimer = value; }
         }
 
         public int SpawnX
