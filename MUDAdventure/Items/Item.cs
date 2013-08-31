@@ -81,6 +81,7 @@ namespace MUDAdventure
 
             this.spawned = true;
 
+            this.respawnTimer = new System.Timers.Timer();
             this.respawnTimer.Interval = sptime;
             this.respawnTimer.Elapsed += new ElapsedEventHandler(respawnTimer_Elapsed);
 
@@ -88,16 +89,16 @@ namespace MUDAdventure
         }
 
         //for expirable items
-        public Item(string n, string d, double w, bool expire, List<string> rn, ref List<Item> expirableItemList)
+        public Item(string n, string d, double w, int x, int y, int z, bool expire, List<string> rn, ref List<Item> expirableItemList)
         {
             this.name = n;
             this.description = d;
 
             this.weight = w;
 
-            this.x = this.spawnX;
-            this.y = this.spawnY;
-            this.z = this.spawnZ;
+            this.x = x;
+            this.y = y;
+            this.z = z;
 
             this.expirable = expire;
 
@@ -105,9 +106,12 @@ namespace MUDAdventure
 
             this.spawned = true;
 
+            this.expirationTimer = new System.Timers.Timer();
             this.expirationTimer.Interval = expireTime;
             this.expirationTimer.Elapsed += new ElapsedEventHandler(expirationTimer_Elapsed);
 
+            this.expirationTimer.Enabled = true;
+            this.expirationTimer.Start();
 
             this.expirableItemList = expirableItemList;
         }
@@ -205,6 +209,18 @@ namespace MUDAdventure
         //        }
         //    }
         //}
+
+        public Dagger ToDagger()
+        {
+            //TODO: find a way to generate a compiler error here if this method is called on an incompatible type
+            return new Dagger((Dagger)this);
+        }
+
+        public Light ToLight()
+        {
+            //TODO: find a way to generate a compiler error here if this method is called on an incompatible type
+            return new Light((Light)this);
+        }
 
         #region Attribute Accessors
 

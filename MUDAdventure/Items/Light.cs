@@ -15,7 +15,7 @@ namespace MUDAdventure
         private bool isLit;
         private Timer fuelTimer;
 
-        public Light() { }
+        public Light() : base() { }
 
         public Light(Light light) :base(light)
         {
@@ -59,7 +59,7 @@ namespace MUDAdventure
         }
 
         //for expirable items
-        public Light(string n, string d, double w, bool expire, List<string> rn, ref List<Item> expirableItemList, int curfuel, int totfuel) : base(n, d, w, expire, rn, ref expirableItemList)
+        public Light(string n, string d, double w, int x, int y, int z, bool expire, List<string> rn, ref List<Item> expirableItemList, int curfuel, int totfuel) : base(n, d, w, x, y, z, expire, rn, ref expirableItemList)
         {
             this.totalFuel = totfuel;
             this.currentFuel = curfuel;

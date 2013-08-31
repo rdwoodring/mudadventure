@@ -22,13 +22,51 @@ namespace MUDAdventure
             this.weight = 0;
         }
 
-        public void AddItem(Item item)
+        //public void AddItem(Item item)
+        //{
+        //    Monitor.TryEnter(inventoryLock, 3000);
+        //    try
+        //    {
+        //        this.generalInventory.Add(item);
+        //        this.weight += item.Weight;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Debug.Print(ex.Message.ToString());
+        //        Debug.Print(ex.StackTrace.ToString());
+        //    }
+        //    finally
+        //    {
+        //        Monitor.Exit(inventoryLock);
+        //    }
+        //}
+
+        public void AddItem(Dagger dagger)
         {
             Monitor.TryEnter(inventoryLock, 3000);
             try
             {
-                this.generalInventory.Add(item);
-                this.weight += item.Weight;
+                this.generalInventory.Add(dagger);
+                this.weight += dagger.Weight;
+            }
+            catch (Exception ex)
+            {
+                Debug.Print(ex.Message.ToString());
+                Debug.Print(ex.StackTrace.ToString());
+            }
+            finally
+            {
+                Monitor.Exit(inventoryLock);
+            }
+        }
+
+        public void AddItem(Light light)
+        {
+            Monitor.TryEnter(inventoryLock, 3000);
+            try
+            {
+                this.generalInventory.Add(light);
+                this.weight += light.Weight;
             }
             catch (Exception ex)
             {

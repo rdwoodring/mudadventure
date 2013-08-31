@@ -55,10 +55,12 @@ namespace MUDAdventure
             NPC npc = new NPC(0, 0, 0, "An NPC", "An NPC is standing here.  It has no form and nothing on.", new List<string> {"NPC"}, 60000, 10, 0, this.worldTimer, this.players, this.rooms);
             this.npcs.Add( npc);
 
-            Dagger dagger = new Dagger(this.worldTimer, "A dagger", "A very generic, basic dagger", 1, 0, 0, 0, 10000, true, new List<string> { "dagger", "dag" }, ref this.expirableItemList, 10, 10);
+            //Dagger dagger = new Dagger("A dagger", "A very generic, basic dagger", 1, 0, 0, 0, 10000, true, new List<string> { "dagger", "dag" }, ref this.expirableItemList, 10, 10);
+            Dagger dagger = new Dagger("A dagger", "A very generic, basic dagger.", 1, 0, 0, 0, 10000, true, new List<string> { "dagger", "dag" }, 10, 10);
             itemList.Add(dagger);
 
-            Light torch = new Light(this.worldTimer, "A torch", "A simple torch made from a branch and an oily rag", .5, 0, 0, 0, 10000, true, new List<string> { "torch" }, ref this.expirableItemList, 90000);
+            //Light torch = new Light("A torch", "A simple torch made from a branch and an oily rag", .5, 0, 0, 0, 10000, true, new List<string> { "torch" }, ref this.expirableItemList, 90000);
+            Light torch = new Light("A torch", "A simple torch made from a branch and an oily rag.", .5, 0, 0, 0, 10000, true, new List<string> { "torch" }, 90000);
             itemList.Add(torch);
             
         }
