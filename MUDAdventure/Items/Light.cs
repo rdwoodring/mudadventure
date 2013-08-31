@@ -44,9 +44,9 @@ namespace MUDAdventure
             this.currentFuel = light.currentFuel;
 
             this.isLit = false;
-            this.fuelTimer = new Timer();
+            //this.fuelTimer = new Timer();
 
-            this.fuelTimer.Elapsed += new ElapsedEventHandler(fuelTimer_Elapsed);
+            //this.fuelTimer.Elapsed += new ElapsedEventHandler(fuelTimer_Elapsed);
         }
 
         //for respawnable items
@@ -70,6 +70,11 @@ namespace MUDAdventure
         public void Ignite()
         {
             this.isLit = true;
+
+            this.fuelTimer = new Timer();
+
+            this.fuelTimer.Elapsed += new ElapsedEventHandler(fuelTimer_Elapsed);
+
             this.fuelTimer.Interval = this.currentFuel;
             this.fuelTimer.Enabled = true;
             this.fuelTimer.Start();

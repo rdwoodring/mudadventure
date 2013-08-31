@@ -247,31 +247,77 @@ namespace MUDAdventure
                             foreach (InventoryItem item in itemsQuery)
                             {
                                 //adding all the general inventory items from the database back into a player's general inventory
-                                if (item.InventoryItemStatus.InventoryItemStatusName == "generalinventory")
+                                switch (item.InventoryItemStatus.InventoryItemStatusName)
                                 {
-                                    switch (item.ItemType)
-                                    {
-                                        case "MUDAdventure.Dagger":
-                                            //Dagger tempdag = new Dagger(item.ItemName, item.ItemDescription, item.ItemWeight, 0, 0, 0, 0, false, new List<string>(item.ItemRefNames.Split(',')), this.expirableItemList, item.ItemDamage, item.ItemSpeed);
-                                            Dagger tempdag = new Dagger();
-                                            tempdag.Name = item.ItemName;
-                                            tempdag.Description = item.ItemDescription;
-                                            tempdag.Weight = item.ItemWeight;
-                                            tempdag.Expirable = true;
-                                            tempdag.RefNames = new List<string>(item.ItemRefNames.Split(','));
-                                            if (item.ItemDamage.HasValue)
-                                            {
-                                                tempdag.Damage = Convert.ToInt32(item.ItemDamage);
-                                            }
+                                    case "generalinventory":
+                                        switch (item.ItemType)
+                                        {
+                                            case "MUDAdventure.Dagger":
+                                                //Dagger tempdag = new Dagger(item.ItemName, item.ItemDescription, item.ItemWeight, 0, 0, 0, 0, false, new List<string>(item.ItemRefNames.Split(',')), this.expirableItemList, item.ItemDamage, item.ItemSpeed);
+                                                Dagger tempdag = new Dagger();
+                                                tempdag.Name = item.ItemName;
+                                                tempdag.Description = item.ItemDescription;
+                                                tempdag.Weight = item.ItemWeight;
+                                                tempdag.Expirable = true;
+                                                tempdag.RefNames = new List<string>(item.ItemRefNames.Split(','));
+                                                if (item.ItemDamage.HasValue)
+                                                {
+                                                    tempdag.Damage = Convert.ToInt32(item.ItemDamage);
+                                                }
 
-                                            if (item.ItemSpeed.HasValue)
-                                            {
-                                                tempdag.Speed = Convert.ToInt32(item.ItemSpeed);
-                                            }
+                                                if (item.ItemSpeed.HasValue)
+                                                {
+                                                    tempdag.Speed = Convert.ToInt32(item.ItemSpeed);
+                                                }
 
-                                            this.inventory.AddItem(tempdag);
-                                            break;
-                                    }
+                                                this.inventory.AddItem(tempdag);
+                                                break;
+                                        }
+                                        break;
+                                    case "wielded":
+                                        switch (item.ItemType)
+                                        {
+                                            case "MUDAdventure.Dagger":
+                                                //Dagger tempdag = new Dagger(item.ItemName, item.ItemDescription, item.ItemWeight, 0, 0, 0, 0, false, new List<string>(item.ItemRefNames.Split(',')), this.expirableItemList, item.ItemDamage, item.ItemSpeed);
+                                                Dagger tempdag = new Dagger();
+                                                tempdag.Name = item.ItemName;
+                                                tempdag.Description = item.ItemDescription;
+                                                tempdag.Weight = item.ItemWeight;
+                                                tempdag.Expirable = true;
+                                                tempdag.RefNames = new List<string>(item.ItemRefNames.Split(','));
+                                                if (item.ItemDamage.HasValue)
+                                                {
+                                                    tempdag.Damage = Convert.ToInt32(item.ItemDamage);
+                                                }
+
+                                                if (item.ItemSpeed.HasValue)
+                                                {
+                                                    tempdag.Speed = Convert.ToInt32(item.ItemSpeed);
+                                                }
+
+                                                this.inventory.Wielded = tempdag;
+                                                break;
+                                        }
+                                        break;
+                                    case "light":
+                                        Light templight = new Light();
+                                        templight.Name = item.ItemName;
+                                        templight.Description = item.ItemDescription;
+                                        templight.Weight = item.ItemWeight;
+                                        templight.Expirable = true;
+                                        templight.RefNames = new List<string>(item.ItemRefNames.Split(','));
+                                        if (item.ItemTotalFuel.HasValue)
+                                        {
+                                            templight.TotalFuel = Convert.ToInt32(item.ItemTotalFuel);
+                                        }
+
+                                        if (item.ItemCurrentFuel.HasValue)
+                                        {
+                                            templight.CurrentFuel = Convert.ToInt32(item.ItemCurrentFuel);
+                                        }
+
+                                        this.inventory.Light = templight;
+                                        break;
                                 }
                             }
                         }
@@ -1222,6 +1268,46 @@ namespace MUDAdventure
             }
 
             //TODO: save items that are wielded/worn/held etc.
+            if (this.inventory.Wielded != null)
+            {
+                InventoryItem invItem = new InventoryItem();
+                invItem.PlayerName = this.name;
+                invItem.ItemName = this.inventory.Wielded.Name;
+                invItem.ItemDescription = this.inventory.Wielded.Description;
+                invItem.ItemWeight = this.inventory.Wielded.Weight;
+                invItem.ItemRefNames = String.Join(",", this.inventory.Wielded.RefNames.ToArray());
+                invItem.ItemInventoryStatusCode = 1;
+                invItem.ItemType = this.inventory.Wielded.GetType().ToString();
+
+                switch (this.inventory.Wielded.GetType().ToString())
+                {
+                    case "MUDAdventure.Dagger":
+                        invItem.ItemDamage = this.inventory.Wielded.ToDagger().Damage;
+                        invItem.ItemSpeed = this.inventory.Wielded.ToDagger().Speed;
+                        break;
+                    //case: MUDAdventure.Sword, spear, etc, etc
+                }
+
+                playerQuery.InventoryItems.Add(invItem);
+            }
+
+            if (this.inventory.Light != null)
+            {
+                InventoryItem invItem = new InventoryItem();
+                invItem.PlayerName = this.name;
+                invItem.ItemName = this.inventory.Light.Name;
+                invItem.ItemDescription = this.inventory.Light.Description;
+                invItem.ItemWeight = this.inventory.Light.Weight;
+                invItem.ItemRefNames = String.Join(",", this.inventory.Light.RefNames.ToArray());
+                invItem.ItemInventoryStatusCode = 2;
+                invItem.ItemType = this.inventory.Light.GetType().ToString();
+
+                invItem.ItemCurrentFuel = this.inventory.Light.ToLight().CurrentFuel;
+                invItem.ItemTotalFuel = this.inventory.Light.ToLight().TotalFuel;
+
+                playerQuery.InventoryItems.Add(invItem);
+            }
+
 
             //now that the new items are saved, let's delete all the old items.
             foreach (var item in dbItems)
