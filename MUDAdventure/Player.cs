@@ -9,6 +9,8 @@ using System.Net.Sockets;
 using System.Timers;
 using System.Diagnostics;
 using System.Linq;
+using MUDAdventure.Items;
+using System.Reflection;
 
 namespace MUDAdventure
 {
@@ -41,6 +43,7 @@ namespace MUDAdventure
         private List<Item> expirableItemList;
         private Room currentRoom; //which room the player is currently in
         private System.Timers.Timer worldTimer; //the world timer instantiated by the server. used for timed events like attacking and regening moves and health
+        private System.Timers.Timer savePlayerTimer;
         private int worldTime; //what time it is according to the world's clock
         private int totalMoves, currentMoves, totalHitpoints, currentHitpoints; //current moves, total moves, current hp, total hp TODO: add MP to this
         private Object combatTarget; //the target of your wrath, if there is one TODO: make this a list in case another NPC/player attacks while already in combat
@@ -79,8 +82,17 @@ namespace MUDAdventure
 
             this.worldTimer = timer;
 
+            this.savePlayerTimer = new System.Timers.Timer();
+            this.savePlayerTimer.Interval = 300000;
+
             //assign a handler to the timer's elapsed event so we can have events happen during time.
             this.worldTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
+
+            //assign handler to savePlayerTimer so player data will be saved every xx minutes
+            this.savePlayerTimer.Elapsed += new ElapsedEventHandler(savePlayerTimer_Elapsed);
+
+            this.savePlayerTimer.Enabled = true;
+            this.savePlayerTimer.Start();
 
             //setting the time equal to the world time passed in from the server.  
             this.worldTime = time;
@@ -246,58 +258,151 @@ namespace MUDAdventure
 
                             foreach (InventoryItem item in itemsQuery)
                             {
+                                dynamic tempitem = null;
+
                                 //adding all the general inventory items from the database back into a player's general inventory
                                 switch (item.InventoryItemStatus.InventoryItemStatusName)
                                 {
+                                    //the case for items that are coded for "general inventory".  This must contain **ALL** created item types
                                     case "generalinventory":
                                         switch (item.ItemType)
                                         {
-                                            case "MUDAdventure.Dagger":
+                                            case "MUDAdventure.Items.Dagger":
                                                 //Dagger tempdag = new Dagger(item.ItemName, item.ItemDescription, item.ItemWeight, 0, 0, 0, 0, false, new List<string>(item.ItemRefNames.Split(',')), this.expirableItemList, item.ItemDamage, item.ItemSpeed);
-                                                Dagger tempdag = new Dagger();
-                                                tempdag.Name = item.ItemName;
-                                                tempdag.Description = item.ItemDescription;
-                                                tempdag.Weight = item.ItemWeight;
-                                                tempdag.Expirable = true;
-                                                tempdag.RefNames = new List<string>(item.ItemRefNames.Split(','));
+                                                tempitem = new Dagger();
+                                                
                                                 if (item.ItemDamage.HasValue)
                                                 {
-                                                    tempdag.Damage = Convert.ToInt32(item.ItemDamage);
+                                                    tempitem.Damage = Convert.ToInt32(item.ItemDamage);
                                                 }
 
                                                 if (item.ItemSpeed.HasValue)
                                                 {
-                                                    tempdag.Speed = Convert.ToInt32(item.ItemSpeed);
+                                                    tempitem.Speed = Convert.ToInt32(item.ItemSpeed);
+                                                }                                                
+                                                break;
+                                            case "MUDAdventure.Items.Light":
+                                                tempitem = new Light();
+
+                                                if (item.ItemCurrentFuel.HasValue)
+                                                {
+                                                    tempitem.CurrentFuel = Convert.ToInt32(item.ItemCurrentFuel);
                                                 }
 
-                                                this.inventory.AddItem(tempdag);
+                                                if (item.ItemTotalFuel.HasValue)
+                                                {
+                                                    tempitem.TotalFuel = Convert.ToInt32(item.ItemTotalFuel);
+                                                }
+                                                break;
+                                            case "MUDAdventure.Items.Headwear":
+                                                tempitem = new Headwear();
+
+                                                if (item.ItemArmorValue.HasValue)
+                                                {
+                                                    tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
+                                                }
+                                                break;
+                                            case "MUDAdventure.Items.Shirt":
+                                                tempitem = new Shirt();
+
+                                                if (item.ItemArmorValue.HasValue)
+                                                {
+                                                    tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
+                                                }
+                                                break;
+                                            case "MUDAdventure.Items.Gloves":
+                                                tempitem = new Gloves();
+
+                                                if (item.ItemArmorValue.HasValue)
+                                                {
+                                                    tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
+                                                }
+                                                break;
+                                            case "MUDAdventure.Items.Pants":
+                                                tempitem = new Pants();
+
+                                                if (item.ItemArmorValue.HasValue)
+                                                {
+                                                    tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
+                                                }
+                                                break;
+                                            case "MUDAdventure.Items.Boots":
+                                                tempitem = new Boots();
+
+                                                if (item.ItemArmorValue.HasValue)
+                                                {
+                                                    tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
+                                                }
                                                 break;
                                         }
+
+                                        tempitem.Name = item.ItemName;
+                                        tempitem.Description = item.ItemDescription;
+                                        tempitem.Weight = item.ItemWeight;
+                                        tempitem.Expirable = true;
+                                        tempitem.RefNames = new List<string>(item.ItemRefNames.Split(','));
+
+                                        this.inventory.AddItem(tempitem);
+
                                         break;
+
+                                    //case for items that are coded "wielded".  This only needs to contain logic for descendants of class Weapon
                                     case "wielded":
                                         switch (item.ItemType)
                                         {
-                                            case "MUDAdventure.Dagger":
-                                                //Dagger tempdag = new Dagger(item.ItemName, item.ItemDescription, item.ItemWeight, 0, 0, 0, 0, false, new List<string>(item.ItemRefNames.Split(',')), this.expirableItemList, item.ItemDamage, item.ItemSpeed);
-                                                Dagger tempdag = new Dagger();
-                                                tempdag.Name = item.ItemName;
-                                                tempdag.Description = item.ItemDescription;
-                                                tempdag.Weight = item.ItemWeight;
-                                                tempdag.Expirable = true;
-                                                tempdag.RefNames = new List<string>(item.ItemRefNames.Split(','));
+                                            case "MUDAdventure.Items.Dagger":                                                
+                                                tempitem = new Dagger();
+                                                
                                                 if (item.ItemDamage.HasValue)
                                                 {
-                                                    tempdag.Damage = Convert.ToInt32(item.ItemDamage);
+                                                    tempitem.Damage = Convert.ToInt32(item.ItemDamage);
                                                 }
 
                                                 if (item.ItemSpeed.HasValue)
                                                 {
-                                                    tempdag.Speed = Convert.ToInt32(item.ItemSpeed);
+                                                    tempitem.Speed = Convert.ToInt32(item.ItemSpeed);
+                                                }
+                                                
+                                                break;
+                                            case "MUDAdventure.Items.Sword":
+                                                tempitem = new Sword();
+                                                
+                                                if (item.ItemDamage.HasValue)
+                                                {
+                                                    tempitem.Damage = Convert.ToInt32(item.ItemDamage);
                                                 }
 
-                                                this.inventory.Wielded = tempdag;
+                                                if (item.ItemSpeed.HasValue)
+                                                {
+                                                    tempitem.Speed = Convert.ToInt32(item.ItemSpeed);
+                                                }
+                                                
                                                 break;
+                                            case "MUDAdventure.Items.Axe":
+                                                tempitem = new Axe();
+                                                
+                                                if (item.ItemDamage.HasValue)
+                                                {
+                                                    tempitem.Damage = Convert.ToInt32(item.ItemDamage);
+                                                }
+
+                                                if (item.ItemSpeed.HasValue)
+                                                {
+                                                    tempitem.Speed = Convert.ToInt32(item.ItemSpeed);
+                                                }
+                                                
+                                                break;
+
                                         }
+
+                                        tempitem.Name = item.ItemName;
+                                        tempitem.Description = item.ItemDescription;
+                                        tempitem.Weight = item.ItemWeight;
+                                        tempitem.Expirable = true;
+                                        tempitem.RefNames = new List<string>(item.ItemRefNames.Split(','));
+
+                                        this.inventory.Wielded = tempitem;
+
                                         break;
                                     case "light":
                                         Light templight = new Light();
@@ -318,6 +423,82 @@ namespace MUDAdventure
 
                                         this.inventory.Light = templight;
                                         break;
+                                    case "head":
+                                        tempitem = new Headwear();
+                                        tempitem.Name = item.ItemName;
+                                        tempitem.Description = item.ItemDescription;
+                                        tempitem.Weight = item.ItemWeight;
+                                        tempitem.Expirable = true;
+                                        tempitem.RefNames = new List<string>(item.ItemRefNames.Split(','));
+                                        if (item.ItemArmorValue.HasValue)
+                                        {
+                                            tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
+                                        }
+
+                                        this.inventory.Head = tempitem;
+
+                                        break;
+                                    case "torso":
+                                        tempitem = new Shirt();
+                                        tempitem.Name = item.ItemName;
+                                        tempitem.Description = item.ItemDescription;
+                                        tempitem.Weight = item.ItemWeight;
+                                        tempitem.Expirable = true;
+                                        tempitem.RefNames = new List<string>(item.ItemRefNames.Split(','));
+                                        if (item.ItemArmorValue.HasValue)
+                                        {
+                                            tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
+                                        }
+
+                                        this.inventory.Shirt = tempitem;
+
+                                        break;
+                                    case "hands":
+                                        tempitem = new Gloves();
+                                        tempitem.Name = item.ItemName;
+                                        tempitem.Description = item.ItemDescription;
+                                        tempitem.Weight = item.ItemWeight;
+                                        tempitem.Expirable = true;
+                                        tempitem.RefNames = new List<string>(item.ItemRefNames.Split(','));
+                                        if (item.ItemArmorValue.HasValue)
+                                        {
+                                            tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
+                                        }
+
+                                        this.inventory.Gloves = tempitem;
+
+                                        break;
+                                    case "legs":
+                                        tempitem = new Pants();
+                                        tempitem.Name = item.ItemName;
+                                        tempitem.Description = item.ItemDescription;
+                                        tempitem.Weight = item.ItemWeight;
+                                        tempitem.Expirable = true;
+                                        tempitem.RefNames = new List<string>(item.ItemRefNames.Split(','));
+                                        if (item.ItemArmorValue.HasValue)
+                                        {
+                                            tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
+                                        }
+
+                                        this.inventory.Pants = tempitem;
+
+                                        break;
+                                    case "feet":
+                                        tempitem = new Boots();
+                                        tempitem.Name = item.ItemName;
+                                        tempitem.Description = item.ItemDescription;
+                                        tempitem.Weight = item.ItemWeight;
+                                        tempitem.Expirable = true;
+                                        tempitem.RefNames = new List<string>(item.ItemRefNames.Split(','));
+                                        if (item.ItemArmorValue.HasValue)
+                                        {
+                                            tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
+                                        }
+
+                                        this.inventory.Boots = tempitem;
+
+                                        break;
+                                            
                                 }
                             }
                         }
@@ -546,6 +727,18 @@ namespace MUDAdventure
                     this.writeToClient("Hold what?");
                 }
             }
+            else if (input.StartsWith("wear"))
+            {
+                if (input.Length > 4) //has no args after it
+                {
+                    string args = input.Substring(5);
+                    this.Wear(args.ToLower());
+                }
+                else // no args
+                {
+                    this.writeToClient("Wear what?");
+                }
+            }
             else if (input.StartsWith("kill"))
             {
                 if (input.Length > 4)
@@ -609,6 +802,123 @@ namespace MUDAdventure
 
         #region Player Command Methods
 
+        private void Wear(string args)
+        {
+            List<Item> items = this.inventory.ListInventory();
+            List<Item> itemsQuery = (from item in items
+                                     where item.RefNames.Contains(args)
+                                     select item).ToList();
+
+            if (itemsQuery.Count >= 1)
+            {
+                if (itemsQuery.First().GetType().BaseType.ToString() == "MUDAdventure.Items.Apparel")
+                {
+                    StringBuilder message = new StringBuilder();
+
+                    switch (itemsQuery.First().GetType().ToString())
+                    {
+                        case "MUDAdventure.Items.Headwear":
+                            //remove the currently equipped bit of headwear (if any) and return it to general inventory
+                            if (this.inventory.Head != null)
+                            {
+                                message.Append("You stop wearing " + this.inventory.Head.Name + " on your head.\r\n");
+                                this.inventory.AddItem(this.inventory.Head);
+                            }
+
+                            //now wear the new one!
+                            this.inventory.Head = itemsQuery.First().ToHeadwear();
+                            message.Append("You start wearing " + this.inventory.Head.Name + " on your head.\r\n");
+
+                            //and remove it from general inventory
+                            this.inventory.RemoveItem(itemsQuery.First());
+
+                            this.writeToClient(message.ToString());
+                            break;
+
+                        case "MUDAdventure.Items.Shirt":
+                            //remove the currently equipped bit of headwear (if any) and return it to general inventory
+                            if (this.inventory.Shirt != null)
+                            {
+                                message.Append("You stop wearing " + this.inventory.Shirt.Name + " as a shirt.\r\n");
+                                this.inventory.AddItem(this.inventory.Shirt);
+                            }
+
+                            //now wear the new one!
+                            this.inventory.Shirt = itemsQuery.First().ToShirt();
+                            message.Append("You start wearing " + this.inventory.Shirt.Name + " as a shirt.\r\n");
+
+                            //and remove it from general inventory
+                            this.inventory.RemoveItem(itemsQuery.First());
+
+                            this.writeToClient(message.ToString());
+                            break;
+
+                        case "MUDAdventure.Items.Gloves":
+                            //remove the currently equipped bit of headwear (if any) and return it to general inventory
+                            if (this.inventory.Gloves != null)
+                            {
+                                message.Append("You stop wearing " + this.inventory.Gloves.Name + " on your hands.\r\n");
+                                this.inventory.AddItem(this.inventory.Gloves);
+                            }
+
+                            //now wear the new one!
+                            this.inventory.Gloves = itemsQuery.First().ToGloves();
+                            message.Append("You start wearing " + this.inventory.Gloves.Name + " on your hands.\r\n");
+
+                            //and remove it from general inventory
+                            this.inventory.RemoveItem(itemsQuery.First());
+
+                            this.writeToClient(message.ToString());
+                            break;
+
+                        case "MUDAdventure.Items.Pants":
+                            //remove the currently equipped bit of Pantswear (if any) and return it to general inventory
+                            if (this.inventory.Pants != null)
+                            {
+                                message.Append("You stop wearing " + this.inventory.Pants.Name + " as pants.\r\n");
+                                this.inventory.AddItem(this.inventory.Pants);
+                            }
+
+                            //now wear the new one!
+                            this.inventory.Pants = itemsQuery.First().ToPants();
+                            message.Append("You start wearing " + this.inventory.Pants.Name + " as pants.\r\n");
+
+                            //and remove it from general inventory
+                            this.inventory.RemoveItem(itemsQuery.First());
+
+                            this.writeToClient(message.ToString());
+                            break;
+
+                        case "MUDAdventure.Items.Boots":
+                            //remove the currently equipped bit of Bootswear (if any) and return it to general inventory
+                            if (this.inventory.Boots != null)
+                            {
+                                message.Append("You stop wearing " + this.inventory.Boots.Name + " on your feet.\r\n");
+                                this.inventory.AddItem(this.inventory.Boots);
+                            }
+
+                            //now wear the new one!
+                            this.inventory.Boots = itemsQuery.First().ToBoots();
+                            message.Append("You start wearing " + this.inventory.Boots.Name + " on your feet.\r\n");
+
+                            //and remove it from general inventory
+                            this.inventory.RemoveItem(itemsQuery.First());
+
+                            this.writeToClient(message.ToString());
+                            break;
+                    }
+                }
+                else
+                {
+                    this.writeToClient("What?! Don't be preposterous; you can't wear THAT!\r\n");
+                }
+            }
+            else
+            {
+                this.writeToClient("You're not carrying any such item.\r\n");
+            }
+        }
+
         private void Hold(string args)
         {
             List<Item> items = this.inventory.ListInventory();
@@ -665,7 +975,7 @@ namespace MUDAdventure
 
             if (itemsQuery.Count >= 1)
             {
-                if (itemsQuery[0].GetType().ToString() == "MUDAdventure.Dagger" /* || sword || spear || etc. */)
+                if (itemsQuery[0].GetType().ToString().EndsWith("Dagger") /* || sword || spear || etc. */)
                 {
                     StringBuilder message = new StringBuilder();
 
@@ -722,7 +1032,57 @@ namespace MUDAdventure
             {
                 equipmentlist.AppendLine("Nothing");
             }
-            //TODO: add for apparel, shields, lights, etc.
+
+            equipmentlist.Append("[Head] \t\t\t");
+            if (this.inventory.Head != null)
+            {
+                equipmentlist.AppendLine(this.inventory.Head.Name);
+            }
+            else
+            {
+                equipmentlist.AppendLine("Nothing");
+            }
+
+            equipmentlist.Append("[Shirt] \t\t");
+            if (this.inventory.Shirt != null)
+            {
+                equipmentlist.AppendLine(this.inventory.Shirt.Name);
+            }
+            else
+            {
+                equipmentlist.AppendLine("Nothing");
+            }
+
+            equipmentlist.Append("[Hands] \t\t");
+            if (this.inventory.Gloves != null)
+            {
+                equipmentlist.AppendLine(this.inventory.Gloves.Name);
+            }
+            else
+            {
+                equipmentlist.AppendLine("Nothing");
+            }
+
+            equipmentlist.Append("[Pants] \t\t");
+            if (this.inventory.Pants != null)
+            {
+                equipmentlist.AppendLine(this.inventory.Pants.Name);
+            }
+            else
+            {
+                equipmentlist.AppendLine("Nothing");
+            }
+
+            equipmentlist.Append("[Feet] \t\t\t");
+            if (this.inventory.Boots != null)
+            {
+                equipmentlist.AppendLine(this.inventory.Boots.Name);
+            }
+            else
+            {
+                equipmentlist.AppendLine("Nothing");
+            }
+            //TODO: add for shield
 
             writeToClient(equipmentlist.ToString());
         }
@@ -1031,12 +1391,27 @@ namespace MUDAdventure
 
                 switch (itemQuery.First().GetType().ToString())
                 {
-                    case "MUDAdventure.Dagger":
+                    case "MUDAdventure.Items.Dagger":
                         tempitem = new Dagger(itemQuery.First().Name, itemQuery.First().Description, itemQuery.First().Weight, this.x, this.y, this.z, true, itemQuery.First().RefNames, ref this.expirableItemList, itemQuery.First().ToDagger().Damage, itemQuery.First().ToDagger().Speed);                        
                         break;
-                    case "MUDAdventure.Light":
+                    case "MUDAdventure.Items.Light":
                         tempitem = new Light(itemQuery.First().Name, itemQuery.First().Description, itemQuery.First().Weight, this.x, this.y, this.z, true, itemQuery.First().RefNames, ref this.expirableItemList, itemQuery.First().ToLight().CurrentFuel, itemQuery.First().ToLight().TotalFuel);
-                        break;                    
+                        break;
+                    case "MUDAdventure.Items.Headwear":
+                        tempitem = new Headwear(itemQuery.First().Name, itemQuery.First().Description, itemQuery.First().Weight, this.x, this.y, this.z, true, itemQuery.First().RefNames, ref this.expirableItemList, itemQuery.First().ToHeadwear().ArmorValue);
+                        break;
+                    case "MUDAdventure.Items.Shirt":
+                        tempitem = new Shirt(itemQuery.First().Name, itemQuery.First().Description, itemQuery.First().Weight, this.x, this.y, this.z, true, itemQuery.First().RefNames, ref this.expirableItemList, itemQuery.First().ToShirt().ArmorValue);
+                        break;
+                    case "MUDAdventure.Items.Gloves":
+                        tempitem = new Gloves(itemQuery.First().Name, itemQuery.First().Description, itemQuery.First().Weight, this.x, this.y, this.z, true, itemQuery.First().RefNames, ref this.expirableItemList, itemQuery.First().ToGloves().ArmorValue);
+                        break;
+                    case "MUDAdventure.Items.Pants":
+                        tempitem = new Pants(itemQuery.First().Name, itemQuery.First().Description, itemQuery.First().Weight, this.x, this.y, this.z, true, itemQuery.First().RefNames, ref this.expirableItemList, itemQuery.First().ToPants().ArmorValue);
+                        break;
+                    case "MUDAdventure.Items.Boots":
+                        tempitem = new Boots(itemQuery.First().Name, itemQuery.First().Description, itemQuery.First().Weight, this.x, this.y, this.z, true, itemQuery.First().RefNames, ref this.expirableItemList, itemQuery.First().ToBoots().ArmorValue);
+                        break;
                     default:
                         break;
                 }
@@ -1103,12 +1478,27 @@ namespace MUDAdventure
                     {
                         switch (itemQuery.First().GetType().ToString())
                         {
-                            case "MUDAdventure.Dagger":
+                            case "MUDAdventure.Items.Dagger":
                                 tempitem = new Dagger(itemQuery.First().Name, itemQuery.First().Description, itemQuery.First().Weight, this.x, this.y, this.z, true, itemQuery.First().RefNames, ref this.expirableItemList, itemQuery.First().ToDagger().Damage, itemQuery.First().ToDagger().Speed);
                                 break;
-                            case "MUDAdventure.Light":
+                            case "MUDAdventure.Items.Light":
                                 tempitem = new Light(itemQuery.First().Name, itemQuery.First().Description, itemQuery.First().Weight, this.x, this.y, this.z, true, itemQuery.First().RefNames, ref this.expirableItemList, itemQuery.First().ToLight().CurrentFuel, itemQuery.First().ToLight().TotalFuel);
-                                break;         
+                                break;
+                            case "MUDAdventure.Items.Headwear":
+                                tempitem = new Headwear(itemQuery.First().Name, itemQuery.First().Description, itemQuery.First().Weight, this.x, this.y, this.z, true, itemQuery.First().RefNames, ref this.expirableItemList, itemQuery.First().ToHeadwear().ArmorValue);
+                                break;
+                            case "MUDAdventure.Items.Shirt":
+                                tempitem = new Shirt(itemQuery.First().Name, itemQuery.First().Description, itemQuery.First().Weight, this.x, this.y, this.z, true, itemQuery.First().RefNames, ref this.expirableItemList, itemQuery.First().ToShirt().ArmorValue);
+                                break;
+                            case "MUDAdventure.Items.Gloves":
+                                tempitem = new Gloves(itemQuery.First().Name, itemQuery.First().Description, itemQuery.First().Weight, this.x, this.y, this.z, true, itemQuery.First().RefNames, ref this.expirableItemList, itemQuery.First().ToGloves().ArmorValue);
+                                break;
+                            case "MUDAdventure.Items.Pants":
+                                tempitem = new Pants(itemQuery.First().Name, itemQuery.First().Description, itemQuery.First().Weight, this.x, this.y, this.z, true, itemQuery.First().RefNames, ref this.expirableItemList, itemQuery.First().ToPants().ArmorValue);
+                                break;
+                            case "MUDAdventure.Items.Boots":
+                                tempitem = new Boots(itemQuery.First().Name, itemQuery.First().Description, itemQuery.First().Weight, this.x, this.y, this.z, true, itemQuery.First().RefNames, ref this.expirableItemList, itemQuery.First().ToBoots().ArmorValue);
+                                break;
                         }
 
                         this.inventory.AddItem(tempitem);
@@ -1218,11 +1608,38 @@ namespace MUDAdventure
 
         private void Disconnect()
         {
+            this.Save();
+
+            //disconnecting
+            this.writeToClient("Disconnecting...");
+
+            this.connected = false;
+
+            //unsubscribe from events
+            lock (playerlock)
+            {
+                this.players.CollectionChanged -= this.playerListUpdated;
+                foreach (Player player in this.players)
+                {
+                    player.PlayerMoved -= this.HandlePlayerMoved;
+                    player.PlayerConnected -= this.HandlePlayerConnected;
+                    player.PlayerDisconnected -= this.HandlePlayerDisconnected;
+                }
+            }
+
+            this.clientStream.Close();
+            this.tcpClient.Close();
+
+            this.OnPlayerDisconnected(new PlayerDisconnectedEventArgs(this.name));
+        }
+
+        private void Save()
+        {
             //saving player
             var playerQuery =
                 (from playercharacter in db.PlayerCharacters
-                where playercharacter.PlayerName.ToString().ToLower() == this.name.ToLower()
-                select playercharacter).First();
+                 where playercharacter.PlayerName.ToString().ToLower() == this.name.ToLower()
+                 select playercharacter).First();
 
             playerQuery.X = this.x;
             playerQuery.Y = this.y;
@@ -1252,15 +1669,36 @@ namespace MUDAdventure
 
                 switch (item.GetType().ToString())
                 {
-                    case "MUDAdventure.Dagger":
-                        //Dagger tempdag = new Dagger((Dagger)item);
+                    case "MUDAdventure.Items.Dagger":
                         invItem.ItemDamage = item.ToDagger().Damage;
                         invItem.ItemSpeed = item.ToDagger().Speed;
                         break;
-                    case "MUDAdventure.Light":
-                        //Light templight = new Light((Light)item);
+                    case "MUDAdventure.Items.Sword":
+                        invItem.ItemDamage = item.ToSword().Damage;
+                        invItem.ItemSpeed = item.ToSword().Speed;
+                        break;
+                    case "MUDAdventure.Items.Axe":
+                        invItem.ItemDamage = item.ToAxe().Damage;
+                        invItem.ItemSpeed = item.ToAxe().Speed;
+                        break;
+                    case "MUDAdventure.Items.Light":
                         invItem.ItemCurrentFuel = item.ToLight().CurrentFuel;
                         invItem.ItemTotalFuel = item.ToLight().TotalFuel;
+                        break;                    
+                    case "MUDAdventure.Items.Headwear":
+                        invItem.ItemDamage = item.ToHeadwear().ArmorValue;
+                        break;
+                    case "MUDAdventure.Items.Shirt":
+                        invItem.ItemDamage = item.ToShirt().ArmorValue;
+                        break;
+                    case "MUDAdventure.Items.Gloves":
+                        invItem.ItemDamage = item.ToGloves().ArmorValue;
+                        break;
+                    case "MUDAdventure.Items.Pants":
+                        invItem.ItemDamage = item.ToPants().ArmorValue;
+                        break;
+                    case "MUDAdventure.Items.Boots":
+                        invItem.ItemDamage = item.ToBoots().ArmorValue;
                         break;
                 }
 
@@ -1281,9 +1719,17 @@ namespace MUDAdventure
 
                 switch (this.inventory.Wielded.GetType().ToString())
                 {
-                    case "MUDAdventure.Dagger":
+                    case "MUDAdventure.Items.Dagger":
                         invItem.ItemDamage = this.inventory.Wielded.ToDagger().Damage;
                         invItem.ItemSpeed = this.inventory.Wielded.ToDagger().Speed;
+                        break;
+                    case "MUDAdventure.Items.Sword":
+                        invItem.ItemDamage = this.inventory.Wielded.ToSword().Damage;
+                        invItem.ItemSpeed = this.inventory.Wielded.ToSword().Speed;
+                        break;
+                    case "MUDAdventure.Items.Axe":
+                        invItem.ItemDamage = this.inventory.Wielded.ToAxe().Damage;
+                        invItem.ItemSpeed = this.inventory.Wielded.ToAxe().Speed;
                         break;
                     //case: MUDAdventure.Sword, spear, etc, etc
                 }
@@ -1308,6 +1754,85 @@ namespace MUDAdventure
                 playerQuery.InventoryItems.Add(invItem);
             }
 
+            if (this.inventory.Head != null)
+            {
+                InventoryItem invItem = new InventoryItem();
+                invItem.PlayerName = this.name;
+                invItem.ItemName = this.inventory.Head.Name;
+                invItem.ItemDescription = this.inventory.Head.Description;
+                invItem.ItemWeight = this.inventory.Head.Weight;
+                invItem.ItemRefNames = String.Join(",", this.inventory.Head.RefNames.ToArray());
+                invItem.ItemInventoryStatusCode = 3;
+                invItem.ItemType = this.inventory.Head.GetType().ToString();
+
+                invItem.ItemArmorValue = this.inventory.Head.ArmorValue;
+
+                playerQuery.InventoryItems.Add(invItem);
+            }
+
+            if (this.inventory.Shirt != null)
+            {
+                InventoryItem invItem = new InventoryItem();
+                invItem.PlayerName = this.name;
+                invItem.ItemName = this.inventory.Shirt.Name;
+                invItem.ItemDescription = this.inventory.Shirt.Description;
+                invItem.ItemWeight = this.inventory.Shirt.Weight;
+                invItem.ItemRefNames = String.Join(",", this.inventory.Shirt.RefNames.ToArray());
+                invItem.ItemInventoryStatusCode = 4;
+                invItem.ItemType = this.inventory.Shirt.GetType().ToString();
+
+                invItem.ItemArmorValue = this.inventory.Shirt.ArmorValue;
+
+                playerQuery.InventoryItems.Add(invItem);
+            }
+
+            if (this.inventory.Gloves != null)
+            {
+                InventoryItem invItem = new InventoryItem();
+                invItem.PlayerName = this.name;
+                invItem.ItemName = this.inventory.Gloves.Name;
+                invItem.ItemDescription = this.inventory.Gloves.Description;
+                invItem.ItemWeight = this.inventory.Gloves.Weight;
+                invItem.ItemRefNames = String.Join(",", this.inventory.Gloves.RefNames.ToArray());
+                invItem.ItemInventoryStatusCode = 6;
+                invItem.ItemType = this.inventory.Gloves.GetType().ToString();
+
+                invItem.ItemArmorValue = this.inventory.Gloves.ArmorValue;
+
+                playerQuery.InventoryItems.Add(invItem);
+            }
+
+            if (this.inventory.Pants != null)
+            {
+                InventoryItem invItem = new InventoryItem();
+                invItem.PlayerName = this.name;
+                invItem.ItemName = this.inventory.Pants.Name;
+                invItem.ItemDescription = this.inventory.Pants.Description;
+                invItem.ItemWeight = this.inventory.Pants.Weight;
+                invItem.ItemRefNames = String.Join(",", this.inventory.Pants.RefNames.ToArray());
+                invItem.ItemInventoryStatusCode = 7;
+                invItem.ItemType = this.inventory.Pants.GetType().ToString();
+
+                invItem.ItemArmorValue = this.inventory.Pants.ArmorValue;
+
+                playerQuery.InventoryItems.Add(invItem);
+            }
+
+            if (this.inventory.Boots != null)
+            {
+                InventoryItem invItem = new InventoryItem();
+                invItem.PlayerName = this.name;
+                invItem.ItemName = this.inventory.Boots.Name;
+                invItem.ItemDescription = this.inventory.Boots.Description;
+                invItem.ItemWeight = this.inventory.Boots.Weight;
+                invItem.ItemRefNames = String.Join(",", this.inventory.Boots.RefNames.ToArray());
+                invItem.ItemInventoryStatusCode = 9;
+                invItem.ItemType = this.inventory.Boots.GetType().ToString();
+
+                invItem.ItemArmorValue = this.inventory.Boots.ArmorValue;
+
+                playerQuery.InventoryItems.Add(invItem);
+            }
 
             //now that the new items are saved, let's delete all the old items.
             foreach (var item in dbItems)
@@ -1317,40 +1842,18 @@ namespace MUDAdventure
 
             //playerQuery.level = this.level;
             //playerQuery.ExpUntilNext = this.expUntilNext;
-            this.writeToClient("Saving " + this.name + "...");
+            this.writeToClient("Saving " + this.name + "...\r\n");
 
             try
             {
                 db.SubmitChanges();
-                this.writeToClient(this.name + " saved.");
+                //this.writeToClient(this.name + " saved.");
             }
             catch (Exception ex)
             {
                 Debug.Print(ex.Message);
                 Debug.Print(ex.StackTrace);
             }
-
-            //disconnecting
-            this.writeToClient("Disconnecting...");
-
-            this.connected = false;
-
-            //unsubscribe from events
-            lock (playerlock)
-            {
-                this.players.CollectionChanged -= this.playerListUpdated;
-                foreach (Player player in this.players)
-                {
-                    player.PlayerMoved -= this.HandlePlayerMoved;
-                    player.PlayerConnected -= this.HandlePlayerConnected;
-                    player.PlayerDisconnected -= this.HandlePlayerDisconnected;
-                }
-            }
-
-            this.clientStream.Close();
-            this.tcpClient.Close();
-
-            this.OnPlayerDisconnected(new PlayerDisconnectedEventArgs(this.name));
         }
 
         protected virtual void OnPlayerAttackedAndHit(AttackedAndHitEventArgs e)
@@ -1829,6 +2332,11 @@ namespace MUDAdventure
                 this.writeToClient(e.Name + " goes out, leaving you in darkness.\r\n");
                 this.inventory.Light = null;
             }
+        }
+
+        private void savePlayerTimer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            this.Save();
         }
 
         private void OnTimedEvent(object sender, ElapsedEventArgs e)

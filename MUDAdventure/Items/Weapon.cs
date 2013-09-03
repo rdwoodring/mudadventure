@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Timers;
 
-namespace MUDAdventure
+namespace MUDAdventure.Items
 {
     abstract class Weapon : Item
     {

@@ -5,7 +5,7 @@ using System.Text;
 using System.Timers;
 using System.Diagnostics;
 
-namespace MUDAdventure
+namespace MUDAdventure.Items
 {
     class Light : Item
     {

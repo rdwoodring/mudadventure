@@ -33,12 +33,12 @@ namespace MUDAdventure
     partial void InsertPlayerCharacter(PlayerCharacter instance);
     partial void UpdatePlayerCharacter(PlayerCharacter instance);
     partial void DeletePlayerCharacter(PlayerCharacter instance);
-    partial void InsertInventoryItem(InventoryItem instance);
-    partial void UpdateInventoryItem(InventoryItem instance);
-    partial void DeleteInventoryItem(InventoryItem instance);
     partial void InsertInventoryItemStatus(InventoryItemStatus instance);
     partial void UpdateInventoryItemStatus(InventoryItemStatus instance);
     partial void DeleteInventoryItemStatus(InventoryItemStatus instance);
+    partial void InsertInventoryItem(InventoryItem instance);
+    partial void UpdateInventoryItem(InventoryItem instance);
+    partial void DeleteInventoryItem(InventoryItem instance);
     #endregion
 		
 		public MUDAdventureDataContext() : 
@@ -79,19 +79,19 @@ namespace MUDAdventure
 			}
 		}
 		
-		public System.Data.Linq.Table<InventoryItem> InventoryItems
-		{
-			get
-			{
-				return this.GetTable<InventoryItem>();
-			}
-		}
-		
 		public System.Data.Linq.Table<InventoryItemStatus> InventoryItemStatus
 		{
 			get
 			{
 				return this.GetTable<InventoryItemStatus>();
+			}
+		}
+		
+		public System.Data.Linq.Table<InventoryItem> InventoryItems
+		{
+			get
+			{
+				return this.GetTable<InventoryItem>();
 			}
 		}
 	}
@@ -498,6 +498,120 @@ namespace MUDAdventure
 		}
 	}
 	
+	[global::System.Data.Linq.Mapping.TableAttribute(Name="dbo.InventoryItemStatuses")]
+	public partial class InventoryItemStatus : INotifyPropertyChanging, INotifyPropertyChanged
+	{
+		
+		private static PropertyChangingEventArgs emptyChangingEventArgs = new PropertyChangingEventArgs(String.Empty);
+		
+		private int _Index;
+		
+		private string _InventoryItemStatusName;
+		
+		private EntitySet<InventoryItem> _InventoryItems;
+		
+    #region Extensibility Method Definitions
+    partial void OnLoaded();
+    partial void OnValidate(System.Data.Linq.ChangeAction action);
+    partial void OnCreated();
+    partial void OnIndexChanging(int value);
+    partial void OnIndexChanged();
+    partial void OnInventoryItemStatusNameChanging(string value);
+    partial void OnInventoryItemStatusNameChanged();
+    #endregion
+		
+		public InventoryItemStatus()
+		{
+			this._InventoryItems = new EntitySet<InventoryItem>(new Action<InventoryItem>(this.attach_InventoryItems), new Action<InventoryItem>(this.detach_InventoryItems));
+			OnCreated();
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Name="[Index]", Storage="_Index", AutoSync=AutoSync.OnInsert, DbType="Int NOT NULL IDENTITY", IsPrimaryKey=true, IsDbGenerated=true)]
+		public int Index
+		{
+			get
+			{
+				return this._Index;
+			}
+			set
+			{
+				if ((this._Index != value))
+				{
+					this.OnIndexChanging(value);
+					this.SendPropertyChanging();
+					this._Index = value;
+					this.SendPropertyChanged("Index");
+					this.OnIndexChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_InventoryItemStatusName", DbType="NVarChar(100) NOT NULL", CanBeNull=false)]
+		public string InventoryItemStatusName
+		{
+			get
+			{
+				return this._InventoryItemStatusName;
+			}
+			set
+			{
+				if ((this._InventoryItemStatusName != value))
+				{
+					this.OnInventoryItemStatusNameChanging(value);
+					this.SendPropertyChanging();
+					this._InventoryItemStatusName = value;
+					this.SendPropertyChanged("InventoryItemStatusName");
+					this.OnInventoryItemStatusNameChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.AssociationAttribute(Name="InventoryItemStatus_InventoryItem", Storage="_InventoryItems", ThisKey="Index", OtherKey="ItemInventoryStatusCode")]
+		public EntitySet<InventoryItem> InventoryItems
+		{
+			get
+			{
+				return this._InventoryItems;
+			}
+			set
+			{
+				this._InventoryItems.Assign(value);
+			}
+		}
+		
+		public event PropertyChangingEventHandler PropertyChanging;
+		
+		public event PropertyChangedEventHandler PropertyChanged;
+		
+		protected virtual void SendPropertyChanging()
+		{
+			if ((this.PropertyChanging != null))
+			{
+				this.PropertyChanging(this, emptyChangingEventArgs);
+			}
+		}
+		
+		protected virtual void SendPropertyChanged(String propertyName)
+		{
+			if ((this.PropertyChanged != null))
+			{
+				this.PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+			}
+		}
+		
+		private void attach_InventoryItems(InventoryItem entity)
+		{
+			this.SendPropertyChanging();
+			entity.InventoryItemStatus = this;
+		}
+		
+		private void detach_InventoryItems(InventoryItem entity)
+		{
+			this.SendPropertyChanging();
+			entity.InventoryItemStatus = null;
+		}
+	}
+	
 	[global::System.Data.Linq.Mapping.TableAttribute(Name="dbo.InventoryItems")]
 	public partial class InventoryItem : INotifyPropertyChanging, INotifyPropertyChanged
 	{
@@ -524,13 +638,15 @@ namespace MUDAdventure
 		
 		private System.Nullable<int> _ItemCurrentFuel;
 		
+		private System.Nullable<int> _ItemArmorValue;
+		
 		private int _ItemInventoryStatusCode;
 		
 		private string _ItemType;
 		
-		private EntityRef<PlayerCharacter> _PlayerCharacter;
-		
 		private EntityRef<InventoryItemStatus> _InventoryItemStatus;
+		
+		private EntityRef<PlayerCharacter> _PlayerCharacter;
 		
     #region Extensibility Method Definitions
     partial void OnLoaded();
@@ -556,6 +672,8 @@ namespace MUDAdventure
     partial void OnItemTotalFuelChanged();
     partial void OnItemCurrentFuelChanging(System.Nullable<int> value);
     partial void OnItemCurrentFuelChanged();
+    partial void OnItemArmorValueChanging(System.Nullable<int> value);
+    partial void OnItemArmorValueChanged();
     partial void OnItemInventoryStatusCodeChanging(int value);
     partial void OnItemInventoryStatusCodeChanged();
     partial void OnItemTypeChanging(string value);
@@ -564,8 +682,8 @@ namespace MUDAdventure
 		
 		public InventoryItem()
 		{
-			this._PlayerCharacter = default(EntityRef<PlayerCharacter>);
 			this._InventoryItemStatus = default(EntityRef<InventoryItemStatus>);
+			this._PlayerCharacter = default(EntityRef<PlayerCharacter>);
 			OnCreated();
 		}
 		
@@ -773,6 +891,26 @@ namespace MUDAdventure
 			}
 		}
 		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_ItemArmorValue", DbType="Int")]
+		public System.Nullable<int> ItemArmorValue
+		{
+			get
+			{
+				return this._ItemArmorValue;
+			}
+			set
+			{
+				if ((this._ItemArmorValue != value))
+				{
+					this.OnItemArmorValueChanging(value);
+					this.SendPropertyChanging();
+					this._ItemArmorValue = value;
+					this.SendPropertyChanged("ItemArmorValue");
+					this.OnItemArmorValueChanged();
+				}
+			}
+		}
+		
 		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_ItemInventoryStatusCode", DbType="Int NOT NULL")]
 		public int ItemInventoryStatusCode
 		{
@@ -817,6 +955,40 @@ namespace MUDAdventure
 			}
 		}
 		
+		[global::System.Data.Linq.Mapping.AssociationAttribute(Name="InventoryItemStatus_InventoryItem", Storage="_InventoryItemStatus", ThisKey="ItemInventoryStatusCode", OtherKey="Index", IsForeignKey=true)]
+		public InventoryItemStatus InventoryItemStatus
+		{
+			get
+			{
+				return this._InventoryItemStatus.Entity;
+			}
+			set
+			{
+				InventoryItemStatus previousValue = this._InventoryItemStatus.Entity;
+				if (((previousValue != value) 
+							|| (this._InventoryItemStatus.HasLoadedOrAssignedValue == false)))
+				{
+					this.SendPropertyChanging();
+					if ((previousValue != null))
+					{
+						this._InventoryItemStatus.Entity = null;
+						previousValue.InventoryItems.Remove(this);
+					}
+					this._InventoryItemStatus.Entity = value;
+					if ((value != null))
+					{
+						value.InventoryItems.Add(this);
+						this._ItemInventoryStatusCode = value.Index;
+					}
+					else
+					{
+						this._ItemInventoryStatusCode = default(int);
+					}
+					this.SendPropertyChanged("InventoryItemStatus");
+				}
+			}
+		}
+		
 		[global::System.Data.Linq.Mapping.AssociationAttribute(Name="PlayerCharacter_InventoryItem", Storage="_PlayerCharacter", ThisKey="PlayerName", OtherKey="PlayerName", IsForeignKey=true)]
 		public PlayerCharacter PlayerCharacter
 		{
@@ -851,40 +1023,6 @@ namespace MUDAdventure
 			}
 		}
 		
-		[global::System.Data.Linq.Mapping.AssociationAttribute(Name="InventoryItemStatuse_InventoryItem", Storage="_InventoryItemStatus", ThisKey="ItemInventoryStatusCode", OtherKey="Index", IsForeignKey=true)]
-		public InventoryItemStatus InventoryItemStatus
-		{
-			get
-			{
-				return this._InventoryItemStatus.Entity;
-			}
-			set
-			{
-				InventoryItemStatus previousValue = this._InventoryItemStatus.Entity;
-				if (((previousValue != value) 
-							|| (this._InventoryItemStatus.HasLoadedOrAssignedValue == false)))
-				{
-					this.SendPropertyChanging();
-					if ((previousValue != null))
-					{
-						this._InventoryItemStatus.Entity = null;
-						previousValue.InventoryItems.Remove(this);
-					}
-					this._InventoryItemStatus.Entity = value;
-					if ((value != null))
-					{
-						value.InventoryItems.Add(this);
-						this._ItemInventoryStatusCode = value.Index;
-					}
-					else
-					{
-						this._ItemInventoryStatusCode = default(int);
-					}
-					this.SendPropertyChanged("InventoryItemStatus");
-				}
-			}
-		}
-		
 		public event PropertyChangingEventHandler PropertyChanging;
 		
 		public event PropertyChangedEventHandler PropertyChanged;
@@ -903,120 +1041,6 @@ namespace MUDAdventure
 			{
 				this.PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
 			}
-		}
-	}
-	
-	[global::System.Data.Linq.Mapping.TableAttribute(Name="dbo.InventoryItemStatuses")]
-	public partial class InventoryItemStatus : INotifyPropertyChanging, INotifyPropertyChanged
-	{
-		
-		private static PropertyChangingEventArgs emptyChangingEventArgs = new PropertyChangingEventArgs(String.Empty);
-		
-		private int _Index;
-		
-		private string _InventoryItemStatusName;
-		
-		private EntitySet<InventoryItem> _InventoryItems;
-		
-    #region Extensibility Method Definitions
-    partial void OnLoaded();
-    partial void OnValidate(System.Data.Linq.ChangeAction action);
-    partial void OnCreated();
-    partial void OnIndexChanging(int value);
-    partial void OnIndexChanged();
-    partial void OnInventoryItemStatusNameChanging(string value);
-    partial void OnInventoryItemStatusNameChanged();
-    #endregion
-		
-		public InventoryItemStatus()
-		{
-			this._InventoryItems = new EntitySet<InventoryItem>(new Action<InventoryItem>(this.attach_InventoryItems), new Action<InventoryItem>(this.detach_InventoryItems));
-			OnCreated();
-		}
-		
-		[global::System.Data.Linq.Mapping.ColumnAttribute(Name="[Index]", Storage="_Index", AutoSync=AutoSync.OnInsert, DbType="Int NOT NULL IDENTITY", IsPrimaryKey=true, IsDbGenerated=true)]
-		public int Index
-		{
-			get
-			{
-				return this._Index;
-			}
-			set
-			{
-				if ((this._Index != value))
-				{
-					this.OnIndexChanging(value);
-					this.SendPropertyChanging();
-					this._Index = value;
-					this.SendPropertyChanged("Index");
-					this.OnIndexChanged();
-				}
-			}
-		}
-		
-		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_InventoryItemStatusName", DbType="NVarChar(100) NOT NULL", CanBeNull=false)]
-		public string InventoryItemStatusName
-		{
-			get
-			{
-				return this._InventoryItemStatusName;
-			}
-			set
-			{
-				if ((this._InventoryItemStatusName != value))
-				{
-					this.OnInventoryItemStatusNameChanging(value);
-					this.SendPropertyChanging();
-					this._InventoryItemStatusName = value;
-					this.SendPropertyChanged("InventoryItemStatusName");
-					this.OnInventoryItemStatusNameChanged();
-				}
-			}
-		}
-		
-		[global::System.Data.Linq.Mapping.AssociationAttribute(Name="InventoryItemStatuse_InventoryItem", Storage="_InventoryItems", ThisKey="Index", OtherKey="ItemInventoryStatusCode")]
-		public EntitySet<InventoryItem> InventoryItems
-		{
-			get
-			{
-				return this._InventoryItems;
-			}
-			set
-			{
-				this._InventoryItems.Assign(value);
-			}
-		}
-		
-		public event PropertyChangingEventHandler PropertyChanging;
-		
-		public event PropertyChangedEventHandler PropertyChanged;
-		
-		protected virtual void SendPropertyChanging()
-		{
-			if ((this.PropertyChanging != null))
-			{
-				this.PropertyChanging(this, emptyChangingEventArgs);
-			}
-		}
-		
-		protected virtual void SendPropertyChanged(String propertyName)
-		{
-			if ((this.PropertyChanged != null))
-			{
-				this.PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-			}
-		}
-		
-		private void attach_InventoryItems(InventoryItem entity)
-		{
-			this.SendPropertyChanging();
-			entity.InventoryItemStatus = this;
-		}
-		
-		private void detach_InventoryItems(InventoryItem entity)
-		{
-			this.SendPropertyChanging();
-			entity.InventoryItemStatus = null;
 		}
 	}
 }

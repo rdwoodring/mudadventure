@@ -4,7 +4,7 @@ using System.Linq;
 using System.Timers;
 using System.Text;
 
-namespace MUDAdventure
+namespace MUDAdventure.Items
 {
     class Dagger : Weapon
     {

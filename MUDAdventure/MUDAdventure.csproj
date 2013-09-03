@@ -66,9 +66,17 @@
     <Compile Include="Custom Args\FleeFailEventArgs.cs" />
     <Compile Include="Custom Args\LightExpiredEventArgs.cs" />
     <Compile Include="Inventory.cs" />
+    <Compile Include="Items\Apparel.cs" />
+    <Compile Include="Items\Axe.cs" />
+    <Compile Include="Items\Boots.cs" />
     <Compile Include="Items\Dagger.cs" />
+    <Compile Include="Items\Gloves.cs" />
+    <Compile Include="Items\Headwear.cs" />
     <Compile Include="Items\Item.cs" />
     <Compile Include="Items\Light.cs" />
+    <Compile Include="Items\Pants.cs" />
+    <Compile Include="Items\Shirt.cs" />
+    <Compile Include="Items\Sword.cs" />
     <Compile Include="MUDAdventure.designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>

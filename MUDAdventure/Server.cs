@@ -10,6 +10,7 @@ using System.Timers;
 using System.Xml;
 using System.IO;
 using System.Diagnostics;
+using MUDAdventure.Items;
 
 namespace MUDAdventure
 {
@@ -44,6 +45,7 @@ namespace MUDAdventure
             this.time = 0;
             this.hour = 0; 
 
+            //TODO: replace this xml file with rooms in a DB
             Console.WriteLine("Attempting to read Rooms.xml...");
             this.ReadRoomFile();
             if (rooms.Count > 0)
@@ -55,13 +57,16 @@ namespace MUDAdventure
             NPC npc = new NPC(0, 0, 0, "An NPC", "An NPC is standing here.  It has no form and nothing on.", new List<string> {"NPC"}, 60000, 10, 0, this.worldTimer, this.players, this.rooms);
             this.npcs.Add( npc);
 
-            //Dagger dagger = new Dagger("A dagger", "A very generic, basic dagger", 1, 0, 0, 0, 10000, true, new List<string> { "dagger", "dag" }, ref this.expirableItemList, 10, 10);
-            Dagger dagger = new Dagger("A dagger", "A very generic, basic dagger.", 1, 0, 0, 0, 10000, true, new List<string> { "dagger", "dag" }, 10, 10);
-            itemList.Add(dagger);
+            //creating some test items
+            //TODO: add code for loading respawnable items from DB
+            itemList.Add(new Dagger("A dagger", "A very generic, basic dagger.", 1, 0, 0, 0, 10000, true, new List<string> { "dagger", "dag" }, 10, 10));
+            itemList.Add(new Pants("A pair of cotton pants", "A pair of white, cotton pants.", 1, 0, 0, 0, 60000, true, new List<string> { "cotton", "pants" }, 0));
+            itemList.Add(new Shirt("A cotton shirt", "A long-sleeved, white, cotton shirt.", 1, 0, 0, 0, 60000, true, new List<string> { "cotton", "shirt" }, 0));
+            itemList.Add(new Headwear("A cotton hood", "A white, cotton hood.", 1, 0, 0, 0, 60000, true, new List<string> { "cotton", "hood" }, 0));
+            itemList.Add(new Gloves("A pair of cotton gloves", "A pair of soft, white, cotton gloves.", 1, 0, 0, 0, 60000, true, new List<string> { "cotton", "gloves" }, 0));
+            itemList.Add(new Boots("A pair of soft, leather boots", "A pair of soft, supple, leather boots with a thin leather sole.", 1, 0, 0, 0, 60000, true, new List<string> { "boots" }, 1));
 
-            //Light torch = new Light("A torch", "A simple torch made from a branch and an oily rag", .5, 0, 0, 0, 10000, true, new List<string> { "torch" }, ref this.expirableItemList, 90000);
-            Light torch = new Light("A torch", "A simple torch made from a branch and an oily rag.", .5, 0, 0, 0, 10000, true, new List<string> { "torch" }, 90000);
-            itemList.Add(torch);
+            itemList.Add(new Light("A torch", "A simple torch made from a branch and an oily rag.", .5, 0, 0, 0, 10000, true, new List<string> { "torch" }, 90000));
             
         }
 

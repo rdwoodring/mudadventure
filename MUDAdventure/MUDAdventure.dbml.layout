@@ -8,30 +8,30 @@
         <elementListCompartment Id="900b69d3-5afa-4df8-83fa-38ec80ae3e51" absoluteBounds="0.64000000000000012, 0.96, 1.9700000000000002, 2.941609700520833" name="DataPropertiesCompartment" titleTextColor="Black" itemTextColor="Black" />
       </nestedChildShapes>
     </classShape>
-    <classShape Id="e184ff2f-b64d-43cc-8e53-3d3f36feb8a8" absoluteBounds="6.125, 0.75, 2, 3.1170068359375005">
-      <DataClassMoniker Name="/MUDAdventureDataContext/InventoryItem" />
-      <nestedChildShapes>
-        <elementListCompartment Id="7bceaaa0-7cb7-433a-bb8f-3bf3b9d9be53" absoluteBounds="6.14, 1.21, 1.9700000000000002, 2.5570068359375" name="DataPropertiesCompartment" titleTextColor="Black" itemTextColor="Black" />
-      </nestedChildShapes>
-    </classShape>
     <classShape Id="2d9efc0d-c36c-4758-bf7f-a5130fe61dac" absoluteBounds="3.375, 2, 2, 1.1939925130208335">
       <DataClassMoniker Name="/MUDAdventureDataContext/InventoryItemStatus" />
       <nestedChildShapes>
         <elementListCompartment Id="857f6c10-3ea0-46d7-9cab-86a429fae5ae" absoluteBounds="3.39, 2.46, 1.9700000000000002, 0.63399251302083326" name="DataPropertiesCompartment" titleTextColor="Black" itemTextColor="Black" />
       </nestedChildShapes>
     </classShape>
-    <associationConnector edgePoints="[(2.625 : 1.34375); (6.125 : 1.34375)]" fixedFrom="Algorithm" fixedTo="Algorithm">
+    <classShape Id="f6b3da1d-0f84-43b5-bfba-ce11090c1d5b" absoluteBounds="7.125, 0.625, 2, 3.3093082682291666">
+      <DataClassMoniker Name="/MUDAdventureDataContext/InventoryItem" />
+      <nestedChildShapes>
+        <elementListCompartment Id="94212703-5d2a-4cc7-9591-1141744f74c7" absoluteBounds="7.14, 1.085, 1.9700000000000002, 2.7493082682291665" name="DataPropertiesCompartment" titleTextColor="Black" itemTextColor="Black" />
+      </nestedChildShapes>
+    </classShape>
+    <associationConnector edgePoints="[(5.375 : 2.59699625651042); (7.125 : 2.59699625651042)]" fixedFrom="Algorithm" fixedTo="Algorithm">
+      <AssociationMoniker Name="/MUDAdventureDataContext/InventoryItemStatus/InventoryItemStatus_InventoryItem" />
+      <nodes>
+        <classShapeMoniker Id="2d9efc0d-c36c-4758-bf7f-a5130fe61dac" />
+        <classShapeMoniker Id="f6b3da1d-0f84-43b5-bfba-ce11090c1d5b" />
+      </nodes>
+    </associationConnector>
+    <associationConnector edgePoints="[(2.625 : 1.28125); (7.125 : 1.28125)]" fixedFrom="Algorithm" fixedTo="Algorithm">
       <AssociationMoniker Name="/MUDAdventureDataContext/PlayerCharacter/PlayerCharacter_InventoryItem" />
       <nodes>
         <classShapeMoniker Id="9971bebb-0f6c-4b8a-8df8-9773128d55e6" />
-        <classShapeMoniker Id="e184ff2f-b64d-43cc-8e53-3d3f36feb8a8" />
-      </nodes>
-    </associationConnector>
-    <associationConnector edgePoints="[(5.375 : 2.59699625651042); (6.125 : 2.59699625651042)]" fixedFrom="Algorithm" fixedTo="Algorithm">
-      <AssociationMoniker Name="/MUDAdventureDataContext/InventoryItemStatus/InventoryItemStatuse_InventoryItem" />
-      <nodes>
-        <classShapeMoniker Id="2d9efc0d-c36c-4758-bf7f-a5130fe61dac" />
-        <classShapeMoniker Id="e184ff2f-b64d-43cc-8e53-3d3f36feb8a8" />
+        <classShapeMoniker Id="f6b3da1d-0f84-43b5-bfba-ce11090c1d5b" />
       </nodes>
     </associationConnector>
   </nestedChildShapes>

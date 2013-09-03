@@ -6,7 +6,7 @@ using System.Timers;
 using System.Diagnostics;
 using System.Threading;
 
-namespace MUDAdventure
+namespace MUDAdventure.Items
 {
     //the base class for all spawnable in game items including containers, weapons, armor, etc.
     //set it to abstract, because we don't want any actualy instances of class Item, only it's descendents
@@ -210,6 +210,8 @@ namespace MUDAdventure
         //    }
         //}
 
+        #region Conversion Methods
+
         public Dagger ToDagger()
         {
             //TODO: find a way to generate a compiler error here if this method is called on an incompatible type
@@ -221,6 +223,43 @@ namespace MUDAdventure
             //TODO: find a way to generate a compiler error here if this method is called on an incompatible type
             return new Light((Light)this);
         }
+
+        public Sword ToSword()
+        {
+            return new Sword((Sword)this);
+        }
+
+        public Axe ToAxe()
+        {
+            return new Axe((Axe)this);
+        }
+
+        public Headwear ToHeadwear()
+        {
+            return new Headwear((Headwear)this);
+        }
+
+        public Shirt ToShirt()
+        {
+            return new Shirt((Shirt)this);
+        }
+
+        public Gloves ToGloves()
+        {
+            return new Gloves((Gloves)this);
+        }
+
+        public Pants ToPants()
+        {
+            return new Pants((Pants)this);
+        }
+
+        public Boots ToBoots()
+        {
+            return new Boots((Boots)this);
+        }        
+
+        #endregion
 
         #region Attribute Accessors
 
