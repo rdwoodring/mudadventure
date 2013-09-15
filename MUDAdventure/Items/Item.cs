@@ -8,8 +8,11 @@ using System.Threading;
 
 namespace MUDAdventure.Items
 {
-    //the base class for all spawnable in game items including containers, weapons, armor, etc.
-    //set it to abstract, because we don't want any actualy instances of class Item, only it's descendents
+    ///<summary>
+    ///The Item class is the base class for all the items (including weapons, apparel, lights, containers, etc.).  Depending upon the situation, items may be respawnable, or expirable.  
+    ///Respawnable items that are picked up will be copied to a player's inventory, disappear from that room in the game, then respawn when the set respawn interval elapses.  
+    ///Expirable items that are dropped from a player's inventory will stay in that location until the expiration timer elapses, then it will disappear from the game.
+    ///</summary>    
     abstract class Item
     {
         static object expirableItemListLock = new object();
@@ -18,7 +21,7 @@ namespace MUDAdventure.Items
 
         protected string name, description;
         protected double weight;
-        protected int spawnX, spawnY, spawnZ, x, y, z, spawntime, respawnCounter, expireCounter;
+        protected int spawnX, spawnY, spawnZ, x, y, z, spawntime, respawnCounter;
         protected bool spawnable, expirable, inInventory, spawned;
         protected List<string> refNames;
         protected List<Item> expirableItemList;
@@ -26,9 +29,15 @@ namespace MUDAdventure.Items
         protected System.Timers.Timer respawnTimer;
         protected System.Timers.Timer expirationTimer;
 
+        /// <summary>
+        /// Default constructor.        
+        /// </summary>
         public Item() { }
 
-        //for copying an item into inventory
+        /// <summary>
+        /// Constructor that takes any instance of a descendant of Item and copies all of its attributes to create a new instance.
+        /// </summary>
+        /// <param name="item">Any instance of descendant of Item.</param>
         public Item(Item item)
         {
             this.name = item.name;
@@ -43,20 +52,25 @@ namespace MUDAdventure.Items
             this.spawntime = item.spawntime;
             this.respawnCounter = item.respawnCounter;
 
-            this.expireCounter = 0;
-
             this.spawnable = item.spawnable;
             this.expirable = item.expirable;
             this.spawned = item.spawned;
 
-            this.refNames = item.refNames;
-            //this.expirableItemList = item.expirableItemList;
-            
-            //this.worldTimer = item.worldTimer;
-            //this.worldTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
+            this.refNames = item.refNames;            
         }
 
-        //for respawnable items
+        /// <summary>
+        /// Class constructor for creating "respawnable" items.
+        /// </summary>
+        /// <param name="n">Name</param>
+        /// <param name="d">Description</param>
+        /// <param name="w">Weight</param>
+        /// <param name="spx">Respawn X coordinate</param>
+        /// <param name="spy">Respawn Y coordinate</param>
+        /// <param name="spz">Respawn Z coordinate</param>
+        /// <param name="sptime">Spawn time (milliseconds) that dictates how long it takes an item to "respawn" after it has been picked up by a player</param>
+        /// <param name="spawn">Says that the item should be respawnable</param>
+        /// <param name="rn">A list of "reference names" that players will use to reference this item during gameplay</param>
         public Item(string n, string d, double w, int spx, int spy, int spz, int sptime, bool spawn, List<string> rn)
         {
             this.name = n;
@@ -75,8 +89,6 @@ namespace MUDAdventure.Items
             this.spawntime = sptime;
             this.spawnable = spawn;
 
-            //this.expirable = false;
-
             this.refNames = rn;
 
             this.spawned = true;
@@ -88,7 +100,18 @@ namespace MUDAdventure.Items
             this.respawnCounter = 0;            
         }
 
-        //for expirable items
+        /// <summary>
+        /// Class constructor for creating "expirable" items.
+        /// </summary>
+        /// <param name="n">Name</param>
+        /// <param name="d">Description</param>
+        /// <param name="w">Weight</param>
+        /// <param name="x">Current X coordinate</param>
+        /// <param name="y">Current Y coordinate</param>
+        /// <param name="z">Current Z coordinate</param>
+        /// <param name="expire">Says that the item should be expirable</param>
+        /// <param name="rn">A list of "reference names" that players will use to reference this item during gameplay</param>
+        /// <param name="expirableItemList">The game's list of "expirable" items, passed by reference as objects will automatically remove themselves (expire) when their expiration timer interval has elapsed</param>
         public Item(string n, string d, double w, int x, int y, int z, bool expire, List<string> rn, ref List<Item> expirableItemList)
         {
             this.name = n;
@@ -116,6 +139,14 @@ namespace MUDAdventure.Items
             this.expirableItemList = expirableItemList;
         }
 
+        /// <summary>
+        /// The Player class calls this method when an instance of an Item is picked up.
+        /// This method sets the item's spawned status to false, and moves it to a temporary holding room that is inaccessible to players.
+        /// If the item's "respawnable" attribute it set to true, this method will also enable and start a respawn counter so that the items can respawn when the interval elapses.
+        /// If the item is not "respawnable" (aka, it's expirable), the item will be moved, but no respawn timer will start.  The item's "expiration" timer that was started in the expirable constructor will elapse in the 'hidden' room and the item will be removed from the expirable item list in the Elapsed Event handler
+        /// </summary>
+        /// <seealso cref="respawnTimer_Elapsed(object sender, ElapsedEventArgs e)"/>
+        /// <seealso cref="expirationTimer_Elapsed(object sender, ElapsedEventArgs e)"/>
         public void PickedUp()
         {            
             this.spawned = false;
@@ -315,12 +346,6 @@ namespace MUDAdventure.Items
         {
             get { return this.expirable; }
             set { this.expirable = value; }
-        }
-
-        public int ExpireCounter
-        {
-            get { return this.expireCounter; }
-            set { this.expireCounter = value; }
         }
 
         public int SpawnX

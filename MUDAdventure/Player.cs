@@ -13,61 +13,54 @@ using MUDAdventure.Items;
 using System.Reflection;
 
 namespace MUDAdventure
-{
-    class Player
+{ 
+    class Player : Character
     {
         public event EventHandler<PlayerConnectedEventArgs> PlayerConnected;
         public event EventHandler<PlayerMovedEventArgs> PlayerMoved;
         public event EventHandler<PlayerDisconnectedEventArgs> PlayerDisconnected;
         public event EventHandler<FledEventArgs> PlayerFled;
         public event EventHandler<FleeFailEventArgs> PlayerFleeFail;
-        public event EventHandler<AttackedAndHitEventArgs> PlayerAttackedAndHit;
+        //public event EventHandler<AttackedAndHitEventArgs> PlayerAttackedAndHit;
 
         private static Colorizer colorizer = new Colorizer();
 
         //TODO: temporary solution, what a headache this gave me.  stupid debug folder making copies of databases YAAAARRRRGHGH!
         private MUDAdventureDataContext db = new MUDAdventureDataContext(@"C:\Users\rswoody\Documents\Visual Studio 2010\Projects\MUDAdventure\MUDAdventure\MUDAdventure.mdf");
 
-        private string name; //the player character's name
         private TcpClient tcpClient;
         NetworkStream clientStream;
         ASCIIEncoding encoder;
-        private int x, y, z; //x, y, and z coordinates
-        private int level;
-        private int expUntilNext;
-        private int strength, agility, constitution, intelligence, learning;
+        
+        private int expUntilNext;        
         private ObservableCollection<Player> players; //a list of all connected players
         private Dictionary<string, Room> rooms; //a dictionary of all rooms where the key is "x,y,z"
         private List<NPC> npcs; //a list of all npcs
         private List<Item> itemList; //a list of all items
-        private List<Item> expirableItemList;
-        private Room currentRoom; //which room the player is currently in
-        private System.Timers.Timer worldTimer; //the world timer instantiated by the server. used for timed events like attacking and regening moves and health
-        private System.Timers.Timer savePlayerTimer;
-        private int worldTime; //what time it is according to the world's clock
-        private int totalMoves, currentMoves, totalHitpoints, currentHitpoints; //current moves, total moves, current hp, total hp TODO: add MP to this
-        private Object combatTarget; //the target of your wrath, if there is one TODO: make this a list in case another NPC/player attacks while already in combat
-        private Random rand = new Random(); //a random number... it gets used...
-        private Inventory inventory = new Inventory();
+        private List<Item> expirableItemList;   
+        private int worldTime; //what time it is according to the world's clock                
         private double maxCarryWeight;
 
-        private int timeCounter = 0; //for regenerating moves and hp
+        /****************************************/
+        /*           TIMERS                     */
+        /****************************************/
+
+        private System.Timers.Timer savePlayerTimer;        
 
         private static object playerlock = new object();
         private static object npclock = new object();
         private static object itemlock = new object();
         private static object expirableitemlock = new object();
-        private Object hplock = new Object();
 
         /****************************************/
         /*        FINITE STATE MACHINES         */
         /****************************************/
-        private bool inCombat = false;
+        //private bool inCombat = false;
         private bool isNight = false;
         private bool enteringName, enteringPassword, mainGame; //is the player entering their name, entering their password, or in the main game loop
         private bool connected;
-        private bool isDead = false; //you don't wanna be this, you're dead HAH!
-        private bool isFleeing = false;
+        //private bool isDead = false; //you don't wanna be this, you're dead HAH!
+        //private bool isFleeing = false;
         
         public Player(TcpClient client, ref ObservableCollection<Player> playerlist, Dictionary<string, Room> roomlist, ref List<NPC> npcs, System.Timers.Timer timer, int time, ref List<Item> itemlist, ref List<Item> expirableItemList)
         {
@@ -80,19 +73,15 @@ namespace MUDAdventure
             this.npcs = npcs;
             this.itemList = itemlist;
 
-            this.worldTimer = timer;
-
+            //timer stuff for saving player data at set intervals
             this.savePlayerTimer = new System.Timers.Timer();
-            this.savePlayerTimer.Interval = 300000;
-
-            //assign a handler to the timer's elapsed event so we can have events happen during time.
-            this.worldTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
+            this.savePlayerTimer.Interval = 300000;                  
 
             //assign handler to savePlayerTimer so player data will be saved every xx minutes
             this.savePlayerTimer.Elapsed += new ElapsedEventHandler(savePlayerTimer_Elapsed);
 
             this.savePlayerTimer.Enabled = true;
-            this.savePlayerTimer.Start();
+            this.savePlayerTimer.Start();            
 
             //setting the time equal to the world time passed in from the server.  
             this.worldTime = time;
@@ -138,7 +127,7 @@ namespace MUDAdventure
                         select playercharacter).ToList();
 
                     if (playerQuery.Count == 1) //player exists, we should request password
-                    {
+                    {                        
                         this.enteringName = false;
 
                         int passwordAttempts = 0;
@@ -199,7 +188,7 @@ namespace MUDAdventure
                                         player.PlayerDisconnected += this.HandlePlayerDisconnected;
                                         player.PlayerFled += this.HandlePlayerFled;
                                         player.PlayerFleeFail += this.HandlePlayerFleeFail;
-                                        player.PlayerAttackedAndHit += this.HandlePlayerAttackedAndHit;
+                                        player.AttackedAndHit += this.HandleAttackedAndHit;
                                     }
                                 }
                                 catch (Exception ex)
@@ -222,9 +211,10 @@ namespace MUDAdventure
                                     npc.NPCFled += this.HandleNPCFled;
                                     npc.NPCMoved += this.HandleNPCMoved;
                                     npc.NPCFleeFail += this.HandleNPCFleeFail;
-                                    npc.NPCAttackedAndHit += this.HandleNPCAttackedAndHit;
+                                    npc.AttackedAndHit += this.HandleAttackedAndHit;
                                     npc.NPCDied += this.HandleNPCDied;
                                     npc.NPCSpawned += this.HandleNPCSpawned;
+                                    npc.AttackedAndDodge += this.HandleAttackedAndDodge;
                                 }
                                 catch (Exception ex)
                                 {
@@ -501,6 +491,15 @@ namespace MUDAdventure
                                             
                                 }
                             }
+
+                            //timer stuff for regen-ing player health based on 
+                            this.healthRegen = new System.Timers.Timer();
+                            this.healthRegen.Elapsed += new ElapsedEventHandler(healthRegen_Elapsed);
+                            this.healthRegen.Interval = Math.Round(60000.0 / (double)this.constitution);
+                            this.healthRegen.Enabled = true;
+                            this.healthRegen.Start();
+
+
                         }
                         else if (passwordAttempts > 3)
                         {
@@ -1576,21 +1575,41 @@ namespace MUDAdventure
             if (!this.inCombat)
             {
                 if (!this.isNight || this.currentRoom.LightedRoom || this.inventory.Light != null)
-                {
-                    foreach (NPC npc in npcs)
+                {                    
+                    Monitor.TryEnter(npclock, 3000);
+                    try
                     {
-                        if (npc.RefNames.Contains(args) && npc.X == this.x && npc.Y == this.y && npc.Z == this.z)
-                        {
-                            this.combatTarget = npc;
+                        var target = (from npc in this.npcs
+                                      where npc.X == this.x && npc.Y == this.y && npc.Z == this.z && npc.RefNames.Contains(args)
+                                      select npc).ToList();
 
-                            npc.CombatTarget = this;
-
-                            this.inCombat = true;
-                        }
-                        else
+                        if (target.Count > 0)
                         {
-                            this.writeToClient("That person isn't here.\r\n");
+                            this.combatTarget = target.First();
+                            this.combatTarget.CombatTarget = this;
                         }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.Print(ex.Message);
+                        Debug.Print(ex.StackTrace);
+                    }
+                    finally
+                    {
+                        Monitor.Exit(npclock);
+                    }
+
+                    if (this.combatTarget != null)
+                    {
+                        this.attackTimer = new System.Timers.Timer();
+                        this.attackTimer.Elapsed += new ElapsedEventHandler(attackTimer_Elapsed);
+                        this.attackTimer.Interval = Math.Ceiling((double)(60000 / this.agility));
+                        this.attackTimer.Start();
+                        this.writeToClient("You ATTACK " + this.combatTarget.Name + "!\r\n");
+                    }
+                    else
+                    {
+                        this.writeToClient("That person isn't here.\r\n");
                     }
                 }
                 else
@@ -1619,11 +1638,35 @@ namespace MUDAdventure
             lock (playerlock)
             {
                 this.players.CollectionChanged -= this.playerListUpdated;
+
+                //TODO: unsubscribe all timer event handlers and stop all running timers
+                this.healthRegen.Stop();
+                this.healthRegen.Elapsed -= this.healthRegen_Elapsed;
+                this.healthRegen.Dispose();
+
+                this.savePlayerTimer.Stop();
+                this.savePlayerTimer.Elapsed -= this.savePlayerTimer_Elapsed;
+                this.savePlayerTimer.Dispose();
+
                 foreach (Player player in this.players)
                 {
-                    player.PlayerMoved -= this.HandlePlayerMoved;
                     player.PlayerConnected -= this.HandlePlayerConnected;
+                    player.PlayerMoved -= this.HandlePlayerMoved;
                     player.PlayerDisconnected -= this.HandlePlayerDisconnected;
+                    player.PlayerFled -= this.HandlePlayerFled;
+                    player.PlayerFleeFail -= this.HandlePlayerFleeFail;
+                    player.AttackedAndHit -= this.HandleAttackedAndHit;
+                }
+
+                foreach (NPC npc in this.npcs)
+                {
+                    npc.NPCFled -= this.HandleNPCFled;
+                    npc.NPCMoved -= this.HandleNPCMoved;
+                    npc.NPCFleeFail -= this.HandleNPCFleeFail;
+                    npc.AttackedAndHit -= this.HandleAttackedAndHit;
+                    npc.NPCDied -= this.HandleNPCDied;
+                    npc.NPCSpawned -= this.HandleNPCSpawned;
+                    npc.AttackedAndDodge -= this.HandleAttackedAndDodge;
                 }
             }
 
@@ -1632,6 +1675,11 @@ namespace MUDAdventure
 
             this.OnPlayerDisconnected(new PlayerDisconnectedEventArgs(this.name));
         }
+
+        //public override void ReceiveAttack(int potentialdamage, string attackerName)
+        //{
+        //    //base(potentialdamage, attackerName);
+        //}
 
         private void Save()
         {
@@ -1856,15 +1904,15 @@ namespace MUDAdventure
             }
         }
 
-        protected virtual void OnPlayerAttackedAndHit(AttackedAndHitEventArgs e)
-        {
-            EventHandler<AttackedAndHitEventArgs> handler = this.PlayerAttackedAndHit;
+        //protected virtual void OnAttackedAndHit(AttackedAndHitEventArgs e)
+        //{
+        //    EventHandler<AttackedAndHitEventArgs> handler = this.AttackedAndHit;
 
-            if (handler != null)
-            {
-                handler(this, e);
-            }
-        }
+        //    if (handler != null)
+        //    {
+        //        handler(this, e);
+        //    }
+        //}
 
         protected virtual void OnPlayerConnected(PlayerConnectedEventArgs e)
         {
@@ -2107,53 +2155,11 @@ namespace MUDAdventure
             }
         }
 
-        public void ReceiveAttack(int potentialdamage, string attackername)
-        {
-            //TODO: implement dodge, parry, armor damage reduction or prevention
-            this.inCombat = true;
-
-            Monitor.TryEnter(this.hplock);
-            try
-            {
-                this.currentHitpoints -= potentialdamage;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error: {0}", ex.Message);
-                Console.WriteLine("Trace: {0}", ex.StackTrace);
-            }
-            finally
-            {
-                Monitor.Exit(this.hplock);
-            }
-
-            if (this.currentHitpoints <= 0)
-            {
-                this.Die();
-                writeToClient(attackername + " hits you, doing some damage.\r\nYou are dead.\r\n");
-            }
-            else
-            {
-                writeToClient(attackername + " hits you, doing some damage.\r\n");
-                this.OnPlayerAttackedAndHit(new AttackedAndHitEventArgs(attackername, this.name, this.x, this.y, this.z));
-            }
-        }
-
-        private void Die()
+         protected override void Die()
         {
             this.inCombat = false;
             this.combatTarget = null;
             this.isDead = true;
-        }
-
-        /**************************************************************************/
-        /*                        ACCESSORS                                       */
-        /**************************************************************************/
-
-        public bool IsDead
-        {
-            get { return this.isDead; }
-            set { this.isDead = value; }
         }
 
 
@@ -2268,24 +2274,9 @@ namespace MUDAdventure
             }
         }
 
-        private void HandleNPCAttackedAndHit(object sender, AttackedAndHitEventArgs e)
+        private void HandleAttackedAndHit(object sender, AttackedAndHitEventArgs e)
         {
-            if (e.X == this.x && e.Y == this.y && e.Z == this.z)
-            {
-                if (e.AttackerName == this.name)
-                {
-                    this.writeToClient("You hit " + e.DefenderName + ", doing some damage.\r\n");
-                }
-                else
-                {
-                    this.writeToClient(e.AttackerName + " hits " + e.DefenderName + ", doing some damage.\r\n");
-                }
-            }
 
-        }
-
-        private void HandlePlayerAttackedAndHit(object sender, AttackedAndHitEventArgs e)
-        {
             if (e.X == this.x && e.Y == this.y && e.Z == this.z)
             {
                 if (e.AttackerName == this.name)
@@ -2294,7 +2285,22 @@ namespace MUDAdventure
                 }
                 else
                 {
-                    this.writeToClient(e.AttackerName + " hits " + e.DefenderName + ", doing some damage.\r\n");
+                    this.writeToClient(e.AttackerName + " hits " + e.DefenderName + ", doing some damage.\r\n\r\n");
+                }
+            }
+        }
+
+        private void HandleAttackedAndDodge(object sender, AttackedAndDodgeEventArgs e)
+        {
+            if (e.X == this.x && e.Y == this.y && e.Z == this.z)
+            {
+                if (e.AttackerName == this.name)
+                {
+                    this.writeToClient(e.DefenderName + " dodges your attack.\r\n");
+                }
+                else
+                {
+                    this.writeToClient(e.DefenderName + " dodges " + e.AttackerName + "'s attack.\r\n");
                 }
             }
         }
@@ -2305,9 +2311,13 @@ namespace MUDAdventure
             {
                 if (sender == this.combatTarget)
                 {
-                    this.combatTarget = null;
+                    //this.combatTarget = null;
                     this.inCombat = false;
                     this.writeToClient(e.DefenderName + " collapsed... DEAD!\r\n");
+                }
+                else
+                {
+                    this.writeToClient(e.AttackerName + " slays " + e.DefenderName + "\r\n");
                 }
             }
         }
@@ -2339,37 +2349,48 @@ namespace MUDAdventure
             this.Save();
         }
 
-        private void OnTimedEvent(object sender, ElapsedEventArgs e)
+        private void attackTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            this.timeCounter++;
-
-            //TODO: HP regen depending on constitution
-            //this.writeToClient("hp regenerating");
-            
-            //TODO: MOVE regen
-            if (this.currentMoves < this.totalMoves)
+            if (!this.combatTarget.IsDead)
             {
-                if (this.timeCounter % 50 == 0)
-                {
-                    this.currentMoves++;
-                }
+                //TODO: sub in actual damage calculation
+                this.combatTarget.ReceiveAttack(5, this.name);
             }
-
-            if (this.inCombat)
+            else
             {
-                if (this.combatTarget != null)
-                {
-                    if (!this.npcs[npcs.IndexOf((NPC)combatTarget)].IsDead)
-                    {
-                        this.npcs[npcs.IndexOf((NPC)combatTarget)].ReceiveAttack(2, this.name);
-                    }
-                    else if (this.npcs[npcs.IndexOf((NPC)combatTarget)].IsDead)
-                    {
-                        this.combatTarget = null;
-                        this.inCombat = false;
-                    }
-                }
+                this.combatTarget = null;
+                this.attackTimer.Enabled = false;
             }
         }
+
+        //private void OnTimedEvent(object sender, ElapsedEventArgs e)
+        //{
+        //    this.timeCounter++;
+          
+        //    //TODO: MOVE regen
+        //    if (this.currentMoves < this.totalMoves)
+        //    {
+        //        if (this.timeCounter % 50 == 0)
+        //        {
+        //            this.currentMoves++;
+        //        }
+        //    }
+
+        //    if (this.inCombat)
+        //    {
+        //        if (this.combatTarget != null)
+        //        {
+        //            if (!this.npcs[npcs.IndexOf((NPC)combatTarget)].IsDead)
+        //            {
+        //                this.npcs[npcs.IndexOf((NPC)combatTarget)].ReceiveAttack(2, this.name);
+        //            }
+        //            else if (this.npcs[npcs.IndexOf((NPC)combatTarget)].IsDead)
+        //            {
+        //                this.combatTarget = null;
+        //                this.inCombat = false;
+        //            }
+        //        }
+        //    }
+        //}
     }
 }

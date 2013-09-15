@@ -5,31 +5,31 @@ using System.Text;
 
 namespace MUDAdventure
 {
-    class DiedEventArgs : EventArgs
+    class AttackedAndDodgeEventArgs : EventArgs
     {
-        private string defenderName, attackerName;
+        private string attackerName, defenderName;
         private int x, y, z;
 
-        public DiedEventArgs(string defendername, string attackername, int xloc, int yloc, int zloc)
+        public AttackedAndDodgeEventArgs(string attackername, string defendername, int xloc, int yloc, int zloc)
         {
-            this.defenderName = defendername;
             this.attackerName = attackername;
+            this.defenderName = defendername;
 
             this.x = xloc;
             this.y = yloc;
             this.z = zloc;
         }
 
-        public string DefenderName
-        {
-            get { return this.defenderName; }
-            set { this.defenderName = value; }
-        }
-
         public string AttackerName
         {
             get { return this.attackerName; }
             set { this.attackerName = value; }
+        }
+
+        public string DefenderName
+        {
+            get { return this.defenderName; }
+            set { this.defenderName = value; }
         }
 
         public int X
@@ -51,4 +51,3 @@ namespace MUDAdventure
         }
     }
 }
-

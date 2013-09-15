@@ -10,34 +10,24 @@ using System.Diagnostics;
 namespace MUDAdventure
 {
     //TODO: set this class to abstract.  we don't want any actualy instances of class NPC, only its descendents
-    class NPC
+    class NPC : Character
     {
         public event EventHandler<PlayerMovedEventArgs> NPCMoved;
         public event EventHandler<FledEventArgs> NPCFled;
         public event EventHandler<FleeFailEventArgs> NPCFleeFail;
-        public event EventHandler<AttackedAndHitEventArgs> NPCAttackedAndHit;
+        //public event EventHandler<AttackedAndHitEventArgs> NPCAttackedAndHit;
         public event EventHandler<DiedEventArgs> NPCDied;
         public event EventHandler<SpawnedEventArgs> NPCSpawned;
 
-        private int spawnX, spawnY, spawnZ, x, y, z, spawntime, totalHitpoints, currentHitpoints, wimpy;
-        private string name, description;
+        private int spawnX, spawnY, spawnZ, spawntime, wimpy;
+        private string description;
         private List<string> refNames;        
-        private Object combatTarget;
-        private System.Timers.Timer worldTimer;
         private ObservableCollection<Player> players;
         private Dictionary<string, Room> rooms;
-        private Room currentRoom;
-        private Random rand = new Random();
-        private int respawnCounter;
 
-        private Object hpLock = new Object();
+        protected System.Timers.Timer respawnTimer;
 
-        /*************************************************/
-        /*         FINITE STATE MACHINES                 */
-        /*************************************************/
-        private bool isDead, inCombat, isFleeing;
-
-        public NPC(int spx, int spy, int spz, string n, string d, List<string> refnames, int sptime, int hp, int wimp, System.Timers.Timer timer, ObservableCollection<Player> playerList, Dictionary<string, Room> roomList)
+        public NPC(int spx, int spy, int spz, string n, string d, List<string> refnames, int sptime, int hp, int wimp, ObservableCollection<Player> playerList, Dictionary<string, Room> roomList, int str, int agi, int con, int intel, int lea)
         {
             this.spawnX = spx;
             this.spawnY = spy;
@@ -69,88 +59,39 @@ namespace MUDAdventure
             this.inCombat = false;
             this.isFleeing = false;
 
-            this.worldTimer = timer;
+            this.players = playerList;
 
-            this.worldTimer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
-
-            this.players = playerList;            
+            this.strength = str;
+            this.agility = agi;
+            this.constitution = con;
+            this.intelligence = intel;
+            this.learning = lea;
         }
+        
 
-        public void ReceiveAttack(int potentialdamage, string attackerName)
-        {
-            //TODO: implement dodge, parry, armor damage reduction or prevention
-            this.inCombat = true;
 
-            Monitor.TryEnter(this.hpLock);
-            try
-            {
-                this.currentHitpoints -= potentialdamage;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error: {0}", ex.Message);
-                Console.WriteLine("Trace: {0}", ex.StackTrace);
-            }
-            finally
-            {
-                Monitor.Exit(this.hpLock);
-            }
+        protected override void Die()
+        {            
+            this.OnNPCDied(new DiedEventArgs(this.name, this.combatTarget.Name, this.x, this.y, this.z));
 
-            if (this.currentHitpoints <= 0)
-            {
-                this.Die();
-                //return "You hit an NPC, doing some damage.\r\nAn NPC falls over, dead.";
-            }
-            else
-            {
-                this.OnNPCAttackedAndHit(new AttackedAndHitEventArgs(attackerName, this.name, this.x, this.y, this.z));
-            }
-        }
-
-        private void Die()
-        {
             //TODO: implement die logic
             this.isDead = true;
             this.inCombat = false;
             this.combatTarget = null;
 
-            this.OnNPCDied(new DiedEventArgs(this.name, this.x, this.y, this.z));
-
             //TODO: figure out a better way to do this...
             this.x = -9999;
             this.y = -9999;
             this.z = -9999;
+
+            this.respawnTimer = new System.Timers.Timer();
+            this.respawnTimer.Elapsed += new ElapsedEventHandler(respawnTimer_Elapsed);    //TODO: implement handler & add logic to stop the timer        
+            this.respawnTimer.Interval = this.spawntime;
+            this.respawnTimer.Enabled = true;
+            this.respawnTimer.Start();
         }
 
-        public bool IsDead
-        {
-            get { return this.isDead; }
-            set { this.isDead = value; }
-        }
-
-        public int X
-        {
-            get { return this.x; }
-            set { this.x = value; }
-        }
-
-        public int Y
-        {
-            get { return this.y; }
-            set { this.y = value; }
-        }
-
-        public int Z
-        {
-            get { return this.z; }
-            set { this.z = value; }
-        }
-
-        public string Name
-        {
-            get { return this.name; }
-            set { this.name = value; }
-        }
+        #region Attribute Accessors
 
         public string Description
         {
@@ -164,11 +105,13 @@ namespace MUDAdventure
             set { this.refNames = value; }
         }
 
-        public Object CombatTarget
+        public int CurrentHitpoints
         {
-            get { return this.combatTarget; }
-            set { this.combatTarget = value; }
+            get { return this.currentHitpoints; }
+            set { this.currentHitpoints = value; }
         }
+
+        #endregion
 
         private void Move(string dir)
         {
@@ -233,78 +176,78 @@ namespace MUDAdventure
             }
         }
 
-        private void OnTimedEvent(object sender, ElapsedEventArgs e)
-        {
-            if (this.inCombat)
-            {
-                Debug.Print((((double)this.currentHitpoints / (double)this.totalHitpoints)*100).ToString());
+        //private void OnTimedEvent(object sender, ElapsedEventArgs e)
+        //{
+        //    if (this.inCombat)
+        //    {
+        //        Debug.Print((((double)this.currentHitpoints / (double)this.totalHitpoints)*100).ToString());
 
-                if (this.wimpy >= ((double)this.currentHitpoints / (double)this.totalHitpoints)*100)
-                {
-                    //fleeing is not guaranteed success.  there is a one in two chance that fleeing will even be successful
-                    //on top of that, an exit is chosen randomly, so it is also possible that a non-viable exit will be chosen
-                    //basically, it ain't good news
+        //        if (this.wimpy >= ((double)this.currentHitpoints / (double)this.totalHitpoints)*100)
+        //        {
+        //            //fleeing is not guaranteed success.  there is a one in two chance that fleeing will even be successful
+        //            //on top of that, an exit is chosen randomly, so it is also possible that a non-viable exit will be chosen
+        //            //basically, it ain't good news
 
-                    int flee = rand.Next(1, 2);
-                    if (flee == 1) //the flee was successful
-                    {
-                        int direction = rand.Next(1, 4);
-                        switch (direction)
-                        {
-                            case 1:
-                                this.isFleeing = true;
-                                this.Move("n");
-                                break;
-                            case 2:
-                                this.isFleeing = true;
-                                this.Move("e");
-                                break;
-                            case 3:
-                                this.isFleeing = true;
-                                this.Move("s");
-                                break;
-                            case 4:
-                                this.isFleeing = true;
-                                this.Move("w");
-                                break;
-                        }
-                    }
-                    else
-                    {
-                        this.OnNPCFleeFail(new FleeFailEventArgs(this.x, this.y, this.z, this.name));
-                    }
-                }
-                else
-                {
-                    if (this.combatTarget != null)
-                    {
-                        if (!this.players[players.IndexOf((Player)combatTarget)].IsDead)
-                        {
-                            this.players[players.IndexOf((Player)combatTarget)].ReceiveAttack(2, this.name);
-                        }
-                        else if (this.players[players.IndexOf((Player)combatTarget)].IsDead)
-                        {
-                            this.inCombat = false;
-                            this.combatTarget = null;
-                        }
-                    }
-                }
-            }
-            else if (this.isDead)
-            {
-                this.respawnCounter++;
+        //            int flee = rand.Next(1, 2);
+        //            if (flee == 1) //the flee was successful
+        //            {
+        //                int direction = rand.Next(1, 4);
+        //                switch (direction)
+        //                {
+        //                    case 1:
+        //                        this.isFleeing = true;
+        //                        this.Move("n");
+        //                        break;
+        //                    case 2:
+        //                        this.isFleeing = true;
+        //                        this.Move("e");
+        //                        break;
+        //                    case 3:
+        //                        this.isFleeing = true;
+        //                        this.Move("s");
+        //                        break;
+        //                    case 4:
+        //                        this.isFleeing = true;
+        //                        this.Move("w");
+        //                        break;
+        //                }
+        //            }
+        //            else
+        //            {
+        //                this.OnNPCFleeFail(new FleeFailEventArgs(this.x, this.y, this.z, this.name));
+        //            }
+        //        }
+        //        else
+        //        {
+        //            if (this.combatTarget != null)
+        //            {
+        //                if (!this.players[players.IndexOf((Player)combatTarget)].IsDead)
+        //                {
+        //                    this.players[players.IndexOf((Player)combatTarget)].ReceiveAttack(2, this.name);
+        //                }
+        //                else if (this.players[players.IndexOf((Player)combatTarget)].IsDead)
+        //                {
+        //                    this.inCombat = false;
+        //                    this.combatTarget = null;
+        //                }
+        //            }
+        //        }
+        //    }
+        //    else if (this.isDead)
+        //    {
+        //        this.respawnCounter++;
 
-                if ((this.respawnCounter * 100) >= this.spawntime)
-                {
-                    this.Spawn();
-                }
-            }
-            else
-            {
-                //TODO: implement random movement logic
-                //TODO: implement zones for yelling and to restrict npc movement
-            }
-        }
+        //        if ((this.respawnCounter * 100) >= this.spawntime)
+        //        {
+        //            this.Spawn();
+        //        }
+        //    }
+        //    else
+        //    {
+        //        //TODO: implement random movement logic
+        //        //TODO: implement zones for yelling and to restrict npc movement
+        //    }
+        //}
 
         private void Spawn()
         {
@@ -314,8 +257,6 @@ namespace MUDAdventure
             this.z = this.spawnZ;
 
             this.currentHitpoints = this.totalHitpoints;
-
-            this.respawnCounter = 0;
 
             //TODO: implement spawn event so that users see "An NPC arrives." instead of it just all of a sudden existing.
             this.OnNPCSpawned(new SpawnedEventArgs(this.name, this.x, this.y, this.z));
@@ -351,15 +292,7 @@ namespace MUDAdventure
             }
         }
 
-        protected virtual void OnNPCAttackedAndHit(AttackedAndHitEventArgs e)
-        {
-            EventHandler<AttackedAndHitEventArgs> handler = this.NPCAttackedAndHit;
-
-            if (handler != null)
-            {
-                handler(this, e);
-            }
-        }
+       
 
         protected virtual void OnNPCDied(DiedEventArgs e)
         {
@@ -385,6 +318,12 @@ namespace MUDAdventure
         /*              EVENT HANDLERS                          */
         /********************************************************/
 
+        protected virtual void respawnTimer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            this.respawnTimer.Stop();
+
+            this.Spawn();
+        }
         
     }
 }
