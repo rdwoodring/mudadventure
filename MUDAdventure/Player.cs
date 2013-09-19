@@ -127,391 +127,421 @@ namespace MUDAdventure
                         select playercharacter).ToList();
 
                     if (playerQuery.Count == 1) //player exists, we should request password
-                    {                        
-                        this.enteringName = false;
-
-                        int passwordAttempts = 0;
-                        bool successfullogin = false;
-
-                        this.enteringPassword = true;
-                        do
+                    {
+                        //make sure the player isn't already connected
+                        bool alreadyConnected = false;
+                        Monitor.TryEnter(playerlock, 3000);
+                        try
                         {
-                            this.writeToClient("Please enter your password: ");
-                            string tempPass = this.readFromClient();
-
-                            if (playerQuery[0].Password.ToString() == tempPass) //successful login.  player may now enter the main game
+                            var playerAlreadyConnectedQuery = (from player in players
+                                                               where player.name.ToLower() == tempName.ToLower()
+                                                               select player).First();
+                            if (playerAlreadyConnectedQuery != null)
                             {
-                                successfullogin = true;
-                            }
-                            else
-                            {
-                                passwordAttempts++;
+                                alreadyConnected = true;
                             }
                         }
-                        while (passwordAttempts < 4 && successfullogin == false);
-
-                        if (successfullogin)
+                        catch (Exception ex)
                         {
-                            //TODO: add the rest of the init logic
-                            this.enteringPassword = false;
+                            Debug.Print(ex.Message);
+                            Debug.Print(ex.StackTrace);
+                        }
+                        finally
+                        {
+                            Monitor.Exit(playerlock);
+                        }
 
-                            this.name = playerQuery[0].PlayerName.ToString();
-                            this.connected = true;
-                            this.OnPlayerConnected(new PlayerConnectedEventArgs(this.name));
+                        if (alreadyConnected)
+                        {
+                            this.writeToClient(colorizer.Colorize("Sorry, this character is already connected to the game.\r\n", "red") + colorizer.Colorize("If you own this character and believe that it shouldn't be connected or may have been stolen, please contact game administrators.\r\n", "reset"));
+                            this.Disconnect();
+                        }
+                        else
+                        {
+                            this.enteringName = false;
 
-                            Monitor.TryEnter(playerlock, 3000);
-                            try
-                            {
-                                this.players.CollectionChanged += playerListUpdated;
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine(this.name);
-                                Console.WriteLine("Error: " + ex.Message);
-                                Console.WriteLine("Trace: " + ex.StackTrace);
-                            }
-                            finally
-                            {
-                                Monitor.Exit(playerlock);
-                            }
+                            int passwordAttempts = 0;
+                            bool successfullogin = false;
 
-                            //subscribing to events for players that are already logged in
-                            foreach (Player player in players)
+                            this.enteringPassword = true;
+                            do
                             {
-                                Monitor.TryEnter(playerlock, 5000);
+                                this.writeToClient("Please enter your password: ");
+                                string tempPass = this.readFromClient();
+
+                                if (playerQuery[0].Password.ToString() == tempPass) //successful login.  player may now enter the main game
+                                {
+                                    successfullogin = true;
+                                }
+                                else
+                                {
+                                    passwordAttempts++;
+                                }
+                            }
+                            while (passwordAttempts < 4 && successfullogin == false);
+
+                            if (successfullogin)
+                            {
+                                //TODO: add the rest of the init logic
+                                this.enteringPassword = false;
+
+                                this.name = playerQuery[0].PlayerName.ToString();
+                                this.connected = true;
+                                this.OnPlayerConnected(new PlayerConnectedEventArgs(this.name));
+
+                                Monitor.TryEnter(playerlock, 3000);
                                 try
                                 {
-                                    if (player != this) //don't need to subscribe to events about ourselves, do we?
-                                    {
-                                        player.PlayerConnected += this.HandlePlayerConnected;
-                                        player.PlayerMoved += this.HandlePlayerMoved;
-                                        player.PlayerDisconnected += this.HandlePlayerDisconnected;
-                                        player.PlayerFled += this.HandlePlayerFled;
-                                        player.PlayerFleeFail += this.HandlePlayerFleeFail;
-                                        player.AttackedAndHit += this.HandleAttackedAndHit;
-                                    }
+                                    this.players.CollectionChanged += playerListUpdated;
                                 }
                                 catch (Exception ex)
                                 {
-                                    writeToClient("Error: " + ex.Message);
-                                    writeToClient("Trace: " + ex.StackTrace);
+                                    Console.WriteLine(this.name);
+                                    Console.WriteLine("Error: " + ex.Message);
+                                    Console.WriteLine("Trace: " + ex.StackTrace);
                                 }
                                 finally
                                 {
                                     Monitor.Exit(playerlock);
                                 }
-                            }
 
-                            //subscribing to events for NPCs
-                            foreach (NPC npc in npcs)
+                                //subscribing to events for players that are already logged in
+                                foreach (Player player in players)
+                                {
+                                    Monitor.TryEnter(playerlock, 5000);
+                                    try
+                                    {
+                                        if (player != this) //don't need to subscribe to events about ourselves, do we?
+                                        {
+                                            player.PlayerConnected += this.HandlePlayerConnected;
+                                            player.PlayerMoved += this.HandlePlayerMoved;
+                                            player.PlayerDisconnected += this.HandlePlayerDisconnected;
+                                            player.PlayerFled += this.HandlePlayerFled;
+                                            player.PlayerFleeFail += this.HandlePlayerFleeFail;
+                                            player.AttackedAndHit += this.HandleAttackedAndHit;
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        writeToClient("Error: " + ex.Message);
+                                        writeToClient("Trace: " + ex.StackTrace);
+                                    }
+                                    finally
+                                    {
+                                        Monitor.Exit(playerlock);
+                                    }
+                                }
+
+                                //subscribing to events for NPCs
+                                foreach (NPC npc in npcs)
+                                {
+                                    Monitor.TryEnter(npclock, 5000);
+                                    try
+                                    {
+                                        npc.NPCFled += this.HandleNPCFled;
+                                        npc.NPCMoved += this.HandleNPCMoved;
+                                        npc.NPCFleeFail += this.HandleNPCFleeFail;
+                                        npc.AttackedAndHit += this.HandleAttackedAndHit;
+                                        npc.NPCDied += this.HandleNPCDied;
+                                        npc.NPCSpawned += this.HandleNPCSpawned;
+                                        npc.AttackedAndDodge += this.HandleAttackedAndDodge;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        writeToClient("Error: " + ex.Message);
+                                        writeToClient("Trace: " + ex.StackTrace);
+                                    }
+                                    finally
+                                    {
+                                        Monitor.Exit(npclock);
+                                    }
+                                }
+
+                                this.mainGame = true;
+
+                                this.x = playerQuery[0].X;
+                                this.y = playerQuery[0].Y;
+                                this.z = playerQuery[0].Z;
+
+                                this.level = playerQuery[0].Level;
+                                this.expUntilNext = playerQuery[0].ExpUntilNext;
+
+                                this.strength = playerQuery[0].Strength;
+                                this.agility = playerQuery[0].Agility;
+                                this.constitution = playerQuery[0].Constitution;
+                                this.intelligence = playerQuery[0].Intelligence;
+                                this.learning = playerQuery[0].Learning;
+
+                                var itemsQuery = (from item in db.InventoryItems
+                                                  where item.PlayerName.ToLower() == this.name.ToLower()
+                                                  select item).ToList();
+
+                                foreach (InventoryItem item in itemsQuery)
+                                {
+                                    dynamic tempitem = null;
+
+                                    //adding all the general inventory items from the database back into a player's general inventory
+                                    switch (item.InventoryItemStatus.InventoryItemStatusName)
+                                    {
+                                        //the case for items that are coded for "general inventory".  This must contain **ALL** created item types
+                                        case "generalinventory":
+                                            switch (item.ItemType)
+                                            {
+                                                case "MUDAdventure.Items.Dagger":
+                                                    //Dagger tempdag = new Dagger(item.ItemName, item.ItemDescription, item.ItemWeight, 0, 0, 0, 0, false, new List<string>(item.ItemRefNames.Split(',')), this.expirableItemList, item.ItemDamage, item.ItemSpeed);
+                                                    tempitem = new Dagger();
+
+                                                    if (item.ItemDamage.HasValue)
+                                                    {
+                                                        tempitem.Damage = Convert.ToInt32(item.ItemDamage);
+                                                    }
+
+                                                    if (item.ItemSpeed.HasValue)
+                                                    {
+                                                        tempitem.Speed = Convert.ToInt32(item.ItemSpeed);
+                                                    }
+                                                    break;
+                                                case "MUDAdventure.Items.Light":
+                                                    tempitem = new Light();
+
+                                                    if (item.ItemCurrentFuel.HasValue)
+                                                    {
+                                                        tempitem.CurrentFuel = Convert.ToInt32(item.ItemCurrentFuel);
+                                                    }
+
+                                                    if (item.ItemTotalFuel.HasValue)
+                                                    {
+                                                        tempitem.TotalFuel = Convert.ToInt32(item.ItemTotalFuel);
+                                                    }
+                                                    break;
+                                                case "MUDAdventure.Items.Headwear":
+                                                    tempitem = new Headwear();
+
+                                                    if (item.ItemArmorValue.HasValue)
+                                                    {
+                                                        tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
+                                                    }
+                                                    break;
+                                                case "MUDAdventure.Items.Shirt":
+                                                    tempitem = new Shirt();
+
+                                                    if (item.ItemArmorValue.HasValue)
+                                                    {
+                                                        tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
+                                                    }
+                                                    break;
+                                                case "MUDAdventure.Items.Gloves":
+                                                    tempitem = new Gloves();
+
+                                                    if (item.ItemArmorValue.HasValue)
+                                                    {
+                                                        tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
+                                                    }
+                                                    break;
+                                                case "MUDAdventure.Items.Pants":
+                                                    tempitem = new Pants();
+
+                                                    if (item.ItemArmorValue.HasValue)
+                                                    {
+                                                        tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
+                                                    }
+                                                    break;
+                                                case "MUDAdventure.Items.Boots":
+                                                    tempitem = new Boots();
+
+                                                    if (item.ItemArmorValue.HasValue)
+                                                    {
+                                                        tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
+                                                    }
+                                                    break;
+                                            }
+
+                                            tempitem.Name = item.ItemName;
+                                            tempitem.Description = item.ItemDescription;
+                                            tempitem.Weight = item.ItemWeight;
+                                            tempitem.Expirable = true;
+                                            tempitem.RefNames = new List<string>(item.ItemRefNames.Split(','));
+
+                                            this.inventory.AddItem(tempitem);
+
+                                            break;
+
+                                        //case for items that are coded "wielded".  This only needs to contain logic for descendants of class Weapon
+                                        case "wielded":
+                                            switch (item.ItemType)
+                                            {
+                                                case "MUDAdventure.Items.Dagger":
+                                                    tempitem = new Dagger();
+
+                                                    if (item.ItemDamage.HasValue)
+                                                    {
+                                                        tempitem.Damage = Convert.ToInt32(item.ItemDamage);
+                                                    }
+
+                                                    if (item.ItemSpeed.HasValue)
+                                                    {
+                                                        tempitem.Speed = Convert.ToInt32(item.ItemSpeed);
+                                                    }
+
+                                                    break;
+                                                case "MUDAdventure.Items.Sword":
+                                                    tempitem = new Sword();
+
+                                                    if (item.ItemDamage.HasValue)
+                                                    {
+                                                        tempitem.Damage = Convert.ToInt32(item.ItemDamage);
+                                                    }
+
+                                                    if (item.ItemSpeed.HasValue)
+                                                    {
+                                                        tempitem.Speed = Convert.ToInt32(item.ItemSpeed);
+                                                    }
+
+                                                    break;
+                                                case "MUDAdventure.Items.Axe":
+                                                    tempitem = new Axe();
+
+                                                    if (item.ItemDamage.HasValue)
+                                                    {
+                                                        tempitem.Damage = Convert.ToInt32(item.ItemDamage);
+                                                    }
+
+                                                    if (item.ItemSpeed.HasValue)
+                                                    {
+                                                        tempitem.Speed = Convert.ToInt32(item.ItemSpeed);
+                                                    }
+
+                                                    break;
+
+                                            }
+
+                                            tempitem.Name = item.ItemName;
+                                            tempitem.Description = item.ItemDescription;
+                                            tempitem.Weight = item.ItemWeight;
+                                            tempitem.Expirable = true;
+                                            tempitem.RefNames = new List<string>(item.ItemRefNames.Split(','));
+
+                                            this.inventory.Wielded = tempitem;
+
+                                            break;
+                                        case "light":
+                                            Light templight = new Light();
+                                            templight.Name = item.ItemName;
+                                            templight.Description = item.ItemDescription;
+                                            templight.Weight = item.ItemWeight;
+                                            templight.Expirable = true;
+                                            templight.RefNames = new List<string>(item.ItemRefNames.Split(','));
+                                            if (item.ItemTotalFuel.HasValue)
+                                            {
+                                                templight.TotalFuel = Convert.ToInt32(item.ItemTotalFuel);
+                                            }
+
+                                            if (item.ItemCurrentFuel.HasValue)
+                                            {
+                                                templight.CurrentFuel = Convert.ToInt32(item.ItemCurrentFuel);
+                                            }
+
+                                            this.inventory.Light = templight;
+                                            break;
+                                        case "head":
+                                            tempitem = new Headwear();
+                                            tempitem.Name = item.ItemName;
+                                            tempitem.Description = item.ItemDescription;
+                                            tempitem.Weight = item.ItemWeight;
+                                            tempitem.Expirable = true;
+                                            tempitem.RefNames = new List<string>(item.ItemRefNames.Split(','));
+                                            if (item.ItemArmorValue.HasValue)
+                                            {
+                                                tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
+                                            }
+
+                                            this.inventory.Head = tempitem;
+
+                                            break;
+                                        case "torso":
+                                            tempitem = new Shirt();
+                                            tempitem.Name = item.ItemName;
+                                            tempitem.Description = item.ItemDescription;
+                                            tempitem.Weight = item.ItemWeight;
+                                            tempitem.Expirable = true;
+                                            tempitem.RefNames = new List<string>(item.ItemRefNames.Split(','));
+                                            if (item.ItemArmorValue.HasValue)
+                                            {
+                                                tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
+                                            }
+
+                                            this.inventory.Shirt = tempitem;
+
+                                            break;
+                                        case "hands":
+                                            tempitem = new Gloves();
+                                            tempitem.Name = item.ItemName;
+                                            tempitem.Description = item.ItemDescription;
+                                            tempitem.Weight = item.ItemWeight;
+                                            tempitem.Expirable = true;
+                                            tempitem.RefNames = new List<string>(item.ItemRefNames.Split(','));
+                                            if (item.ItemArmorValue.HasValue)
+                                            {
+                                                tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
+                                            }
+
+                                            this.inventory.Gloves = tempitem;
+
+                                            break;
+                                        case "legs":
+                                            tempitem = new Pants();
+                                            tempitem.Name = item.ItemName;
+                                            tempitem.Description = item.ItemDescription;
+                                            tempitem.Weight = item.ItemWeight;
+                                            tempitem.Expirable = true;
+                                            tempitem.RefNames = new List<string>(item.ItemRefNames.Split(','));
+                                            if (item.ItemArmorValue.HasValue)
+                                            {
+                                                tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
+                                            }
+
+                                            this.inventory.Pants = tempitem;
+
+                                            break;
+                                        case "feet":
+                                            tempitem = new Boots();
+                                            tempitem.Name = item.ItemName;
+                                            tempitem.Description = item.ItemDescription;
+                                            tempitem.Weight = item.ItemWeight;
+                                            tempitem.Expirable = true;
+                                            tempitem.RefNames = new List<string>(item.ItemRefNames.Split(','));
+                                            if (item.ItemArmorValue.HasValue)
+                                            {
+                                                tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
+                                            }
+
+                                            this.inventory.Boots = tempitem;
+
+                                            break;
+
+                                    }
+                                }
+
+                                //timer stuff for regen-ing player health based on 
+                                this.healthRegen = new System.Timers.Timer();
+                                this.healthRegen.Elapsed += new ElapsedEventHandler(healthRegen_Elapsed);
+                                this.healthRegen.Interval = Math.Round(60000.0 / (double)this.constitution);
+                                this.healthRegen.Enabled = true;
+                                this.healthRegen.Start();
+
+
+                            }
+                            else if (passwordAttempts > 3)
                             {
-                                Monitor.TryEnter(npclock, 5000);
-                                try
-                                {
-                                    npc.NPCFled += this.HandleNPCFled;
-                                    npc.NPCMoved += this.HandleNPCMoved;
-                                    npc.NPCFleeFail += this.HandleNPCFleeFail;
-                                    npc.AttackedAndHit += this.HandleAttackedAndHit;
-                                    npc.NPCDied += this.HandleNPCDied;
-                                    npc.NPCSpawned += this.HandleNPCSpawned;
-                                    npc.AttackedAndDodge += this.HandleAttackedAndDodge;
-                                }
-                                catch (Exception ex)
-                                {
-                                    writeToClient("Error: " + ex.Message);
-                                    writeToClient("Trace: " + ex.StackTrace);
-                                }
-                                finally
-                                {
-                                    Monitor.Exit(npclock);
-                                }
+                                this.writeToClient("Password authentication failed too many times.");
+                                this.Disconnect();
                             }
-
-                            this.mainGame = true;
-                            
-                            this.x = playerQuery[0].X;
-                            this.y = playerQuery[0].Y;
-                            this.z = playerQuery[0].Z;
-
-                            this.level = playerQuery[0].Level;
-                            this.expUntilNext = playerQuery[0].ExpUntilNext;
-
-                            this.strength = playerQuery[0].Strength;
-                            this.agility = playerQuery[0].Agility;
-                            this.constitution = playerQuery[0].Constitution;
-                            this.intelligence = playerQuery[0].Intelligence;
-                            this.learning = playerQuery[0].Learning;
-
-                            var itemsQuery = (from item in db.InventoryItems
-                                              where item.PlayerName.ToLower() == this.name.ToLower()
-                                              select item).ToList();
-
-                            foreach (InventoryItem item in itemsQuery)
+                            else
                             {
-                                dynamic tempitem = null;
-
-                                //adding all the general inventory items from the database back into a player's general inventory
-                                switch (item.InventoryItemStatus.InventoryItemStatusName)
-                                {
-                                    //the case for items that are coded for "general inventory".  This must contain **ALL** created item types
-                                    case "generalinventory":
-                                        switch (item.ItemType)
-                                        {
-                                            case "MUDAdventure.Items.Dagger":
-                                                //Dagger tempdag = new Dagger(item.ItemName, item.ItemDescription, item.ItemWeight, 0, 0, 0, 0, false, new List<string>(item.ItemRefNames.Split(',')), this.expirableItemList, item.ItemDamage, item.ItemSpeed);
-                                                tempitem = new Dagger();
-                                                
-                                                if (item.ItemDamage.HasValue)
-                                                {
-                                                    tempitem.Damage = Convert.ToInt32(item.ItemDamage);
-                                                }
-
-                                                if (item.ItemSpeed.HasValue)
-                                                {
-                                                    tempitem.Speed = Convert.ToInt32(item.ItemSpeed);
-                                                }                                                
-                                                break;
-                                            case "MUDAdventure.Items.Light":
-                                                tempitem = new Light();
-
-                                                if (item.ItemCurrentFuel.HasValue)
-                                                {
-                                                    tempitem.CurrentFuel = Convert.ToInt32(item.ItemCurrentFuel);
-                                                }
-
-                                                if (item.ItemTotalFuel.HasValue)
-                                                {
-                                                    tempitem.TotalFuel = Convert.ToInt32(item.ItemTotalFuel);
-                                                }
-                                                break;
-                                            case "MUDAdventure.Items.Headwear":
-                                                tempitem = new Headwear();
-
-                                                if (item.ItemArmorValue.HasValue)
-                                                {
-                                                    tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
-                                                }
-                                                break;
-                                            case "MUDAdventure.Items.Shirt":
-                                                tempitem = new Shirt();
-
-                                                if (item.ItemArmorValue.HasValue)
-                                                {
-                                                    tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
-                                                }
-                                                break;
-                                            case "MUDAdventure.Items.Gloves":
-                                                tempitem = new Gloves();
-
-                                                if (item.ItemArmorValue.HasValue)
-                                                {
-                                                    tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
-                                                }
-                                                break;
-                                            case "MUDAdventure.Items.Pants":
-                                                tempitem = new Pants();
-
-                                                if (item.ItemArmorValue.HasValue)
-                                                {
-                                                    tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
-                                                }
-                                                break;
-                                            case "MUDAdventure.Items.Boots":
-                                                tempitem = new Boots();
-
-                                                if (item.ItemArmorValue.HasValue)
-                                                {
-                                                    tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
-                                                }
-                                                break;
-                                        }
-
-                                        tempitem.Name = item.ItemName;
-                                        tempitem.Description = item.ItemDescription;
-                                        tempitem.Weight = item.ItemWeight;
-                                        tempitem.Expirable = true;
-                                        tempitem.RefNames = new List<string>(item.ItemRefNames.Split(','));
-
-                                        this.inventory.AddItem(tempitem);
-
-                                        break;
-
-                                    //case for items that are coded "wielded".  This only needs to contain logic for descendants of class Weapon
-                                    case "wielded":
-                                        switch (item.ItemType)
-                                        {
-                                            case "MUDAdventure.Items.Dagger":                                                
-                                                tempitem = new Dagger();
-                                                
-                                                if (item.ItemDamage.HasValue)
-                                                {
-                                                    tempitem.Damage = Convert.ToInt32(item.ItemDamage);
-                                                }
-
-                                                if (item.ItemSpeed.HasValue)
-                                                {
-                                                    tempitem.Speed = Convert.ToInt32(item.ItemSpeed);
-                                                }
-                                                
-                                                break;
-                                            case "MUDAdventure.Items.Sword":
-                                                tempitem = new Sword();
-                                                
-                                                if (item.ItemDamage.HasValue)
-                                                {
-                                                    tempitem.Damage = Convert.ToInt32(item.ItemDamage);
-                                                }
-
-                                                if (item.ItemSpeed.HasValue)
-                                                {
-                                                    tempitem.Speed = Convert.ToInt32(item.ItemSpeed);
-                                                }
-                                                
-                                                break;
-                                            case "MUDAdventure.Items.Axe":
-                                                tempitem = new Axe();
-                                                
-                                                if (item.ItemDamage.HasValue)
-                                                {
-                                                    tempitem.Damage = Convert.ToInt32(item.ItemDamage);
-                                                }
-
-                                                if (item.ItemSpeed.HasValue)
-                                                {
-                                                    tempitem.Speed = Convert.ToInt32(item.ItemSpeed);
-                                                }
-                                                
-                                                break;
-
-                                        }
-
-                                        tempitem.Name = item.ItemName;
-                                        tempitem.Description = item.ItemDescription;
-                                        tempitem.Weight = item.ItemWeight;
-                                        tempitem.Expirable = true;
-                                        tempitem.RefNames = new List<string>(item.ItemRefNames.Split(','));
-
-                                        this.inventory.Wielded = tempitem;
-
-                                        break;
-                                    case "light":
-                                        Light templight = new Light();
-                                        templight.Name = item.ItemName;
-                                        templight.Description = item.ItemDescription;
-                                        templight.Weight = item.ItemWeight;
-                                        templight.Expirable = true;
-                                        templight.RefNames = new List<string>(item.ItemRefNames.Split(','));
-                                        if (item.ItemTotalFuel.HasValue)
-                                        {
-                                            templight.TotalFuel = Convert.ToInt32(item.ItemTotalFuel);
-                                        }
-
-                                        if (item.ItemCurrentFuel.HasValue)
-                                        {
-                                            templight.CurrentFuel = Convert.ToInt32(item.ItemCurrentFuel);
-                                        }
-
-                                        this.inventory.Light = templight;
-                                        break;
-                                    case "head":
-                                        tempitem = new Headwear();
-                                        tempitem.Name = item.ItemName;
-                                        tempitem.Description = item.ItemDescription;
-                                        tempitem.Weight = item.ItemWeight;
-                                        tempitem.Expirable = true;
-                                        tempitem.RefNames = new List<string>(item.ItemRefNames.Split(','));
-                                        if (item.ItemArmorValue.HasValue)
-                                        {
-                                            tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
-                                        }
-
-                                        this.inventory.Head = tempitem;
-
-                                        break;
-                                    case "torso":
-                                        tempitem = new Shirt();
-                                        tempitem.Name = item.ItemName;
-                                        tempitem.Description = item.ItemDescription;
-                                        tempitem.Weight = item.ItemWeight;
-                                        tempitem.Expirable = true;
-                                        tempitem.RefNames = new List<string>(item.ItemRefNames.Split(','));
-                                        if (item.ItemArmorValue.HasValue)
-                                        {
-                                            tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
-                                        }
-
-                                        this.inventory.Shirt = tempitem;
-
-                                        break;
-                                    case "hands":
-                                        tempitem = new Gloves();
-                                        tempitem.Name = item.ItemName;
-                                        tempitem.Description = item.ItemDescription;
-                                        tempitem.Weight = item.ItemWeight;
-                                        tempitem.Expirable = true;
-                                        tempitem.RefNames = new List<string>(item.ItemRefNames.Split(','));
-                                        if (item.ItemArmorValue.HasValue)
-                                        {
-                                            tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
-                                        }
-
-                                        this.inventory.Gloves = tempitem;
-
-                                        break;
-                                    case "legs":
-                                        tempitem = new Pants();
-                                        tempitem.Name = item.ItemName;
-                                        tempitem.Description = item.ItemDescription;
-                                        tempitem.Weight = item.ItemWeight;
-                                        tempitem.Expirable = true;
-                                        tempitem.RefNames = new List<string>(item.ItemRefNames.Split(','));
-                                        if (item.ItemArmorValue.HasValue)
-                                        {
-                                            tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
-                                        }
-
-                                        this.inventory.Pants = tempitem;
-
-                                        break;
-                                    case "feet":
-                                        tempitem = new Boots();
-                                        tempitem.Name = item.ItemName;
-                                        tempitem.Description = item.ItemDescription;
-                                        tempitem.Weight = item.ItemWeight;
-                                        tempitem.Expirable = true;
-                                        tempitem.RefNames = new List<string>(item.ItemRefNames.Split(','));
-                                        if (item.ItemArmorValue.HasValue)
-                                        {
-                                            tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
-                                        }
-
-                                        this.inventory.Boots = tempitem;
-
-                                        break;
-                                            
-                                }
+                                this.writeToClient("Unspecified login failure.");
+                                this.Disconnect();
                             }
-
-                            //timer stuff for regen-ing player health based on 
-                            this.healthRegen = new System.Timers.Timer();
-                            this.healthRegen.Elapsed += new ElapsedEventHandler(healthRegen_Elapsed);
-                            this.healthRegen.Interval = Math.Round(60000.0 / (double)this.constitution);
-                            this.healthRegen.Enabled = true;
-                            this.healthRegen.Start();
-
-
                         }
-                        else if (passwordAttempts > 3)
-                        {
-                            this.writeToClient("Password authentication failed too many times.");
-                            this.Disconnect();
-                        }
-                        else
-                        {
-                            this.writeToClient("Unspecified login failure.");
-                            this.Disconnect();
-                        }
-
                     }
                     else if (playerQuery.Count > 1)
                     {
@@ -1627,46 +1657,50 @@ namespace MUDAdventure
 
         private void Disconnect()
         {
+            
             this.Save();
 
             //disconnecting
             this.writeToClient("Disconnecting...");
 
-            this.connected = false;
-
-            //unsubscribe from events
-            lock (playerlock)
+            if (this.connected)
             {
-                this.players.CollectionChanged -= this.playerListUpdated;
+                this.connected = false;
 
-                //TODO: unsubscribe all timer event handlers and stop all running timers
-                this.healthRegen.Stop();
-                this.healthRegen.Elapsed -= this.healthRegen_Elapsed;
-                this.healthRegen.Dispose();
-
-                this.savePlayerTimer.Stop();
-                this.savePlayerTimer.Elapsed -= this.savePlayerTimer_Elapsed;
-                this.savePlayerTimer.Dispose();
-
-                foreach (Player player in this.players)
+                //unsubscribe from events
+                lock (playerlock)
                 {
-                    player.PlayerConnected -= this.HandlePlayerConnected;
-                    player.PlayerMoved -= this.HandlePlayerMoved;
-                    player.PlayerDisconnected -= this.HandlePlayerDisconnected;
-                    player.PlayerFled -= this.HandlePlayerFled;
-                    player.PlayerFleeFail -= this.HandlePlayerFleeFail;
-                    player.AttackedAndHit -= this.HandleAttackedAndHit;
-                }
+                    this.players.CollectionChanged -= this.playerListUpdated;
 
-                foreach (NPC npc in this.npcs)
-                {
-                    npc.NPCFled -= this.HandleNPCFled;
-                    npc.NPCMoved -= this.HandleNPCMoved;
-                    npc.NPCFleeFail -= this.HandleNPCFleeFail;
-                    npc.AttackedAndHit -= this.HandleAttackedAndHit;
-                    npc.NPCDied -= this.HandleNPCDied;
-                    npc.NPCSpawned -= this.HandleNPCSpawned;
-                    npc.AttackedAndDodge -= this.HandleAttackedAndDodge;
+                    //TODO: unsubscribe all timer event handlers and stop all running timers
+                    this.healthRegen.Stop();
+                    this.healthRegen.Elapsed -= this.healthRegen_Elapsed;
+                    this.healthRegen.Dispose();
+
+                    this.savePlayerTimer.Stop();
+                    this.savePlayerTimer.Elapsed -= this.savePlayerTimer_Elapsed;
+                    this.savePlayerTimer.Dispose();
+
+                    foreach (Player player in this.players)
+                    {
+                        player.PlayerConnected -= this.HandlePlayerConnected;
+                        player.PlayerMoved -= this.HandlePlayerMoved;
+                        player.PlayerDisconnected -= this.HandlePlayerDisconnected;
+                        player.PlayerFled -= this.HandlePlayerFled;
+                        player.PlayerFleeFail -= this.HandlePlayerFleeFail;
+                        player.AttackedAndHit -= this.HandleAttackedAndHit;
+                    }
+
+                    foreach (NPC npc in this.npcs)
+                    {
+                        npc.NPCFled -= this.HandleNPCFled;
+                        npc.NPCMoved -= this.HandleNPCMoved;
+                        npc.NPCFleeFail -= this.HandleNPCFleeFail;
+                        npc.AttackedAndHit -= this.HandleAttackedAndHit;
+                        npc.NPCDied -= this.HandleNPCDied;
+                        npc.NPCSpawned -= this.HandleNPCSpawned;
+                        npc.AttackedAndDodge -= this.HandleAttackedAndDodge;
+                    }
                 }
             }
 
@@ -1683,224 +1717,227 @@ namespace MUDAdventure
 
         private void Save()
         {
-            //saving player
-            var playerQuery =
-                (from playercharacter in db.PlayerCharacters
-                 where playercharacter.PlayerName.ToString().ToLower() == this.name.ToLower()
-                 select playercharacter).First();
-
-            playerQuery.X = this.x;
-            playerQuery.Y = this.y;
-            playerQuery.Z = this.z;
-
-            //now to save items in db
-
-            //first let's get a list of all items currently saved for this player in the db
-            //we're going to save the new items to the db, then delete all of these items, instead of trying to figure out
-            //what the exact changes are.
-            var dbItems = from item in db.InventoryItems
-                          where item.PlayerName.ToLower() == this.name.ToLower()
-                          select item;
-
-            //let's start saving items to the db
-            List<Item> items = this.inventory.ListInventory();
-            foreach (Item item in items)
+            if (this.connected)
             {
-                InventoryItem invItem = new InventoryItem();
-                invItem.PlayerName = this.name;
-                invItem.ItemName = item.Name;
-                invItem.ItemDescription = item.Description;
-                invItem.ItemWeight = item.Weight;
-                invItem.ItemRefNames = String.Join(",", item.RefNames.ToArray());
-                invItem.ItemInventoryStatusCode = 10;
-                invItem.ItemType = item.GetType().ToString();
+                //saving player
+                var playerQuery =
+                    (from playercharacter in db.PlayerCharacters
+                     where playercharacter.PlayerName.ToString().ToLower() == this.name.ToLower()
+                     select playercharacter).First();
 
-                switch (item.GetType().ToString())
+                playerQuery.X = this.x;
+                playerQuery.Y = this.y;
+                playerQuery.Z = this.z;
+
+                //now to save items in db
+
+                //first let's get a list of all items currently saved for this player in the db
+                //we're going to save the new items to the db, then delete all of these items, instead of trying to figure out
+                //what the exact changes are.
+                var dbItems = from item in db.InventoryItems
+                              where item.PlayerName.ToLower() == this.name.ToLower()
+                              select item;
+
+                //let's start saving items to the db
+                List<Item> items = this.inventory.ListInventory();
+                foreach (Item item in items)
                 {
-                    case "MUDAdventure.Items.Dagger":
-                        invItem.ItemDamage = item.ToDagger().Damage;
-                        invItem.ItemSpeed = item.ToDagger().Speed;
-                        break;
-                    case "MUDAdventure.Items.Sword":
-                        invItem.ItemDamage = item.ToSword().Damage;
-                        invItem.ItemSpeed = item.ToSword().Speed;
-                        break;
-                    case "MUDAdventure.Items.Axe":
-                        invItem.ItemDamage = item.ToAxe().Damage;
-                        invItem.ItemSpeed = item.ToAxe().Speed;
-                        break;
-                    case "MUDAdventure.Items.Light":
-                        invItem.ItemCurrentFuel = item.ToLight().CurrentFuel;
-                        invItem.ItemTotalFuel = item.ToLight().TotalFuel;
-                        break;                    
-                    case "MUDAdventure.Items.Headwear":
-                        invItem.ItemDamage = item.ToHeadwear().ArmorValue;
-                        break;
-                    case "MUDAdventure.Items.Shirt":
-                        invItem.ItemDamage = item.ToShirt().ArmorValue;
-                        break;
-                    case "MUDAdventure.Items.Gloves":
-                        invItem.ItemDamage = item.ToGloves().ArmorValue;
-                        break;
-                    case "MUDAdventure.Items.Pants":
-                        invItem.ItemDamage = item.ToPants().ArmorValue;
-                        break;
-                    case "MUDAdventure.Items.Boots":
-                        invItem.ItemDamage = item.ToBoots().ArmorValue;
-                        break;
+                    InventoryItem invItem = new InventoryItem();
+                    invItem.PlayerName = this.name;
+                    invItem.ItemName = item.Name;
+                    invItem.ItemDescription = item.Description;
+                    invItem.ItemWeight = item.Weight;
+                    invItem.ItemRefNames = String.Join(",", item.RefNames.ToArray());
+                    invItem.ItemInventoryStatusCode = 10;
+                    invItem.ItemType = item.GetType().ToString();
+
+                    switch (item.GetType().ToString())
+                    {
+                        case "MUDAdventure.Items.Dagger":
+                            invItem.ItemDamage = item.ToDagger().Damage;
+                            invItem.ItemSpeed = item.ToDagger().Speed;
+                            break;
+                        case "MUDAdventure.Items.Sword":
+                            invItem.ItemDamage = item.ToSword().Damage;
+                            invItem.ItemSpeed = item.ToSword().Speed;
+                            break;
+                        case "MUDAdventure.Items.Axe":
+                            invItem.ItemDamage = item.ToAxe().Damage;
+                            invItem.ItemSpeed = item.ToAxe().Speed;
+                            break;
+                        case "MUDAdventure.Items.Light":
+                            invItem.ItemCurrentFuel = item.ToLight().CurrentFuel;
+                            invItem.ItemTotalFuel = item.ToLight().TotalFuel;
+                            break;
+                        case "MUDAdventure.Items.Headwear":
+                            invItem.ItemDamage = item.ToHeadwear().ArmorValue;
+                            break;
+                        case "MUDAdventure.Items.Shirt":
+                            invItem.ItemDamage = item.ToShirt().ArmorValue;
+                            break;
+                        case "MUDAdventure.Items.Gloves":
+                            invItem.ItemDamage = item.ToGloves().ArmorValue;
+                            break;
+                        case "MUDAdventure.Items.Pants":
+                            invItem.ItemDamage = item.ToPants().ArmorValue;
+                            break;
+                        case "MUDAdventure.Items.Boots":
+                            invItem.ItemDamage = item.ToBoots().ArmorValue;
+                            break;
+                    }
+
+                    playerQuery.InventoryItems.Add(invItem);
                 }
 
-                playerQuery.InventoryItems.Add(invItem);
-            }
-
-            //TODO: save items that are wielded/worn/held etc.
-            if (this.inventory.Wielded != null)
-            {
-                InventoryItem invItem = new InventoryItem();
-                invItem.PlayerName = this.name;
-                invItem.ItemName = this.inventory.Wielded.Name;
-                invItem.ItemDescription = this.inventory.Wielded.Description;
-                invItem.ItemWeight = this.inventory.Wielded.Weight;
-                invItem.ItemRefNames = String.Join(",", this.inventory.Wielded.RefNames.ToArray());
-                invItem.ItemInventoryStatusCode = 1;
-                invItem.ItemType = this.inventory.Wielded.GetType().ToString();
-
-                switch (this.inventory.Wielded.GetType().ToString())
+                //TODO: save items that are wielded/worn/held etc.
+                if (this.inventory.Wielded != null)
                 {
-                    case "MUDAdventure.Items.Dagger":
-                        invItem.ItemDamage = this.inventory.Wielded.ToDagger().Damage;
-                        invItem.ItemSpeed = this.inventory.Wielded.ToDagger().Speed;
-                        break;
-                    case "MUDAdventure.Items.Sword":
-                        invItem.ItemDamage = this.inventory.Wielded.ToSword().Damage;
-                        invItem.ItemSpeed = this.inventory.Wielded.ToSword().Speed;
-                        break;
-                    case "MUDAdventure.Items.Axe":
-                        invItem.ItemDamage = this.inventory.Wielded.ToAxe().Damage;
-                        invItem.ItemSpeed = this.inventory.Wielded.ToAxe().Speed;
-                        break;
-                    //case: MUDAdventure.Sword, spear, etc, etc
+                    InventoryItem invItem = new InventoryItem();
+                    invItem.PlayerName = this.name;
+                    invItem.ItemName = this.inventory.Wielded.Name;
+                    invItem.ItemDescription = this.inventory.Wielded.Description;
+                    invItem.ItemWeight = this.inventory.Wielded.Weight;
+                    invItem.ItemRefNames = String.Join(",", this.inventory.Wielded.RefNames.ToArray());
+                    invItem.ItemInventoryStatusCode = 1;
+                    invItem.ItemType = this.inventory.Wielded.GetType().ToString();
+
+                    switch (this.inventory.Wielded.GetType().ToString())
+                    {
+                        case "MUDAdventure.Items.Dagger":
+                            invItem.ItemDamage = this.inventory.Wielded.ToDagger().Damage;
+                            invItem.ItemSpeed = this.inventory.Wielded.ToDagger().Speed;
+                            break;
+                        case "MUDAdventure.Items.Sword":
+                            invItem.ItemDamage = this.inventory.Wielded.ToSword().Damage;
+                            invItem.ItemSpeed = this.inventory.Wielded.ToSword().Speed;
+                            break;
+                        case "MUDAdventure.Items.Axe":
+                            invItem.ItemDamage = this.inventory.Wielded.ToAxe().Damage;
+                            invItem.ItemSpeed = this.inventory.Wielded.ToAxe().Speed;
+                            break;
+                        //case: MUDAdventure.Sword, spear, etc, etc
+                    }
+
+                    playerQuery.InventoryItems.Add(invItem);
                 }
 
-                playerQuery.InventoryItems.Add(invItem);
-            }
+                if (this.inventory.Light != null)
+                {
+                    InventoryItem invItem = new InventoryItem();
+                    invItem.PlayerName = this.name;
+                    invItem.ItemName = this.inventory.Light.Name;
+                    invItem.ItemDescription = this.inventory.Light.Description;
+                    invItem.ItemWeight = this.inventory.Light.Weight;
+                    invItem.ItemRefNames = String.Join(",", this.inventory.Light.RefNames.ToArray());
+                    invItem.ItemInventoryStatusCode = 2;
+                    invItem.ItemType = this.inventory.Light.GetType().ToString();
 
-            if (this.inventory.Light != null)
-            {
-                InventoryItem invItem = new InventoryItem();
-                invItem.PlayerName = this.name;
-                invItem.ItemName = this.inventory.Light.Name;
-                invItem.ItemDescription = this.inventory.Light.Description;
-                invItem.ItemWeight = this.inventory.Light.Weight;
-                invItem.ItemRefNames = String.Join(",", this.inventory.Light.RefNames.ToArray());
-                invItem.ItemInventoryStatusCode = 2;
-                invItem.ItemType = this.inventory.Light.GetType().ToString();
+                    invItem.ItemCurrentFuel = this.inventory.Light.ToLight().CurrentFuel;
+                    invItem.ItemTotalFuel = this.inventory.Light.ToLight().TotalFuel;
 
-                invItem.ItemCurrentFuel = this.inventory.Light.ToLight().CurrentFuel;
-                invItem.ItemTotalFuel = this.inventory.Light.ToLight().TotalFuel;
+                    playerQuery.InventoryItems.Add(invItem);
+                }
 
-                playerQuery.InventoryItems.Add(invItem);
-            }
+                if (this.inventory.Head != null)
+                {
+                    InventoryItem invItem = new InventoryItem();
+                    invItem.PlayerName = this.name;
+                    invItem.ItemName = this.inventory.Head.Name;
+                    invItem.ItemDescription = this.inventory.Head.Description;
+                    invItem.ItemWeight = this.inventory.Head.Weight;
+                    invItem.ItemRefNames = String.Join(",", this.inventory.Head.RefNames.ToArray());
+                    invItem.ItemInventoryStatusCode = 3;
+                    invItem.ItemType = this.inventory.Head.GetType().ToString();
 
-            if (this.inventory.Head != null)
-            {
-                InventoryItem invItem = new InventoryItem();
-                invItem.PlayerName = this.name;
-                invItem.ItemName = this.inventory.Head.Name;
-                invItem.ItemDescription = this.inventory.Head.Description;
-                invItem.ItemWeight = this.inventory.Head.Weight;
-                invItem.ItemRefNames = String.Join(",", this.inventory.Head.RefNames.ToArray());
-                invItem.ItemInventoryStatusCode = 3;
-                invItem.ItemType = this.inventory.Head.GetType().ToString();
+                    invItem.ItemArmorValue = this.inventory.Head.ArmorValue;
 
-                invItem.ItemArmorValue = this.inventory.Head.ArmorValue;
+                    playerQuery.InventoryItems.Add(invItem);
+                }
 
-                playerQuery.InventoryItems.Add(invItem);
-            }
+                if (this.inventory.Shirt != null)
+                {
+                    InventoryItem invItem = new InventoryItem();
+                    invItem.PlayerName = this.name;
+                    invItem.ItemName = this.inventory.Shirt.Name;
+                    invItem.ItemDescription = this.inventory.Shirt.Description;
+                    invItem.ItemWeight = this.inventory.Shirt.Weight;
+                    invItem.ItemRefNames = String.Join(",", this.inventory.Shirt.RefNames.ToArray());
+                    invItem.ItemInventoryStatusCode = 4;
+                    invItem.ItemType = this.inventory.Shirt.GetType().ToString();
 
-            if (this.inventory.Shirt != null)
-            {
-                InventoryItem invItem = new InventoryItem();
-                invItem.PlayerName = this.name;
-                invItem.ItemName = this.inventory.Shirt.Name;
-                invItem.ItemDescription = this.inventory.Shirt.Description;
-                invItem.ItemWeight = this.inventory.Shirt.Weight;
-                invItem.ItemRefNames = String.Join(",", this.inventory.Shirt.RefNames.ToArray());
-                invItem.ItemInventoryStatusCode = 4;
-                invItem.ItemType = this.inventory.Shirt.GetType().ToString();
+                    invItem.ItemArmorValue = this.inventory.Shirt.ArmorValue;
 
-                invItem.ItemArmorValue = this.inventory.Shirt.ArmorValue;
+                    playerQuery.InventoryItems.Add(invItem);
+                }
 
-                playerQuery.InventoryItems.Add(invItem);
-            }
+                if (this.inventory.Gloves != null)
+                {
+                    InventoryItem invItem = new InventoryItem();
+                    invItem.PlayerName = this.name;
+                    invItem.ItemName = this.inventory.Gloves.Name;
+                    invItem.ItemDescription = this.inventory.Gloves.Description;
+                    invItem.ItemWeight = this.inventory.Gloves.Weight;
+                    invItem.ItemRefNames = String.Join(",", this.inventory.Gloves.RefNames.ToArray());
+                    invItem.ItemInventoryStatusCode = 6;
+                    invItem.ItemType = this.inventory.Gloves.GetType().ToString();
 
-            if (this.inventory.Gloves != null)
-            {
-                InventoryItem invItem = new InventoryItem();
-                invItem.PlayerName = this.name;
-                invItem.ItemName = this.inventory.Gloves.Name;
-                invItem.ItemDescription = this.inventory.Gloves.Description;
-                invItem.ItemWeight = this.inventory.Gloves.Weight;
-                invItem.ItemRefNames = String.Join(",", this.inventory.Gloves.RefNames.ToArray());
-                invItem.ItemInventoryStatusCode = 6;
-                invItem.ItemType = this.inventory.Gloves.GetType().ToString();
+                    invItem.ItemArmorValue = this.inventory.Gloves.ArmorValue;
 
-                invItem.ItemArmorValue = this.inventory.Gloves.ArmorValue;
+                    playerQuery.InventoryItems.Add(invItem);
+                }
 
-                playerQuery.InventoryItems.Add(invItem);
-            }
+                if (this.inventory.Pants != null)
+                {
+                    InventoryItem invItem = new InventoryItem();
+                    invItem.PlayerName = this.name;
+                    invItem.ItemName = this.inventory.Pants.Name;
+                    invItem.ItemDescription = this.inventory.Pants.Description;
+                    invItem.ItemWeight = this.inventory.Pants.Weight;
+                    invItem.ItemRefNames = String.Join(",", this.inventory.Pants.RefNames.ToArray());
+                    invItem.ItemInventoryStatusCode = 7;
+                    invItem.ItemType = this.inventory.Pants.GetType().ToString();
 
-            if (this.inventory.Pants != null)
-            {
-                InventoryItem invItem = new InventoryItem();
-                invItem.PlayerName = this.name;
-                invItem.ItemName = this.inventory.Pants.Name;
-                invItem.ItemDescription = this.inventory.Pants.Description;
-                invItem.ItemWeight = this.inventory.Pants.Weight;
-                invItem.ItemRefNames = String.Join(",", this.inventory.Pants.RefNames.ToArray());
-                invItem.ItemInventoryStatusCode = 7;
-                invItem.ItemType = this.inventory.Pants.GetType().ToString();
+                    invItem.ItemArmorValue = this.inventory.Pants.ArmorValue;
 
-                invItem.ItemArmorValue = this.inventory.Pants.ArmorValue;
+                    playerQuery.InventoryItems.Add(invItem);
+                }
 
-                playerQuery.InventoryItems.Add(invItem);
-            }
+                if (this.inventory.Boots != null)
+                {
+                    InventoryItem invItem = new InventoryItem();
+                    invItem.PlayerName = this.name;
+                    invItem.ItemName = this.inventory.Boots.Name;
+                    invItem.ItemDescription = this.inventory.Boots.Description;
+                    invItem.ItemWeight = this.inventory.Boots.Weight;
+                    invItem.ItemRefNames = String.Join(",", this.inventory.Boots.RefNames.ToArray());
+                    invItem.ItemInventoryStatusCode = 9;
+                    invItem.ItemType = this.inventory.Boots.GetType().ToString();
 
-            if (this.inventory.Boots != null)
-            {
-                InventoryItem invItem = new InventoryItem();
-                invItem.PlayerName = this.name;
-                invItem.ItemName = this.inventory.Boots.Name;
-                invItem.ItemDescription = this.inventory.Boots.Description;
-                invItem.ItemWeight = this.inventory.Boots.Weight;
-                invItem.ItemRefNames = String.Join(",", this.inventory.Boots.RefNames.ToArray());
-                invItem.ItemInventoryStatusCode = 9;
-                invItem.ItemType = this.inventory.Boots.GetType().ToString();
+                    invItem.ItemArmorValue = this.inventory.Boots.ArmorValue;
 
-                invItem.ItemArmorValue = this.inventory.Boots.ArmorValue;
+                    playerQuery.InventoryItems.Add(invItem);
+                }
 
-                playerQuery.InventoryItems.Add(invItem);
-            }
+                //now that the new items are saved, let's delete all the old items.
+                foreach (var item in dbItems)
+                {
+                    db.InventoryItems.DeleteOnSubmit(item);
+                }
 
-            //now that the new items are saved, let's delete all the old items.
-            foreach (var item in dbItems)
-            {
-                db.InventoryItems.DeleteOnSubmit(item);
-            }
+                //playerQuery.level = this.level;
+                //playerQuery.ExpUntilNext = this.expUntilNext;
+                this.writeToClient("Saving " + this.name + "...\r\n");
 
-            //playerQuery.level = this.level;
-            //playerQuery.ExpUntilNext = this.expUntilNext;
-            this.writeToClient("Saving " + this.name + "...\r\n");
-
-            try
-            {
-                db.SubmitChanges();
-                //this.writeToClient(this.name + " saved.");
-            }
-            catch (Exception ex)
-            {
-                Debug.Print(ex.Message);
-                Debug.Print(ex.StackTrace);
+                try
+                {
+                    db.SubmitChanges();
+                    //this.writeToClient(this.name + " saved.");
+                }
+                catch (Exception ex)
+                {
+                    Debug.Print(ex.Message);
+                    Debug.Print(ex.StackTrace);
+                }
             }
         }
 
