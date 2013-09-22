@@ -16,7 +16,7 @@ namespace MUDAdventure
         public event EventHandler<FledEventArgs> NPCFled;
         public event EventHandler<FleeFailEventArgs> NPCFleeFail;
         //public event EventHandler<AttackedAndHitEventArgs> NPCAttackedAndHit;
-        public event EventHandler<DiedEventArgs> NPCDied;
+        //public event EventHandler<DiedEventArgs> NPCDied;
         public event EventHandler<SpawnedEventArgs> NPCSpawned;
 
         private int spawnX, spawnY, spawnZ, spawntime, wimpy;
@@ -65,14 +65,22 @@ namespace MUDAdventure
             this.agility = agi;
             this.constitution = con;
             this.intelligence = intel;
-            this.learning = lea;
+            this.learning = lea;            
         }
         
 
 
         protected override void Die()
         {            
-            this.OnNPCDied(new DiedEventArgs(this.name, this.combatTarget.Name, this.x, this.y, this.z));
+            //this.OnNPCDied(new DiedEventArgs(this.name, this.combatTarget.Name, this.x, this.y, this.z));
+
+            base.Die();
+
+            this.attackTimer.Enabled = false;
+            this.attackTimer.Stop();
+            this.attackTimer.Elapsed -= this.attackTimer_Elapsed;
+
+            //this.attackTimer = null;
 
             //TODO: implement die logic
             this.isDead = true;
@@ -82,13 +90,24 @@ namespace MUDAdventure
             //TODO: figure out a better way to do this...
             this.x = -9999;
             this.y = -9999;
-            this.z = -9999;
+            this.z = -9999;            
+            
 
             this.respawnTimer = new System.Timers.Timer();
             this.respawnTimer.Elapsed += new ElapsedEventHandler(respawnTimer_Elapsed);    //TODO: implement handler & add logic to stop the timer        
             this.respawnTimer.Interval = this.spawntime;
             this.respawnTimer.Enabled = true;
             this.respawnTimer.Start();
+        }
+
+        public override void ReceiveAttack(Character sender, int potentialdamage, string attackerName)
+        {
+            base.ReceiveAttack(sender, potentialdamage, attackerName);
+
+            this.attackTimer = new System.Timers.Timer();
+            this.attackTimer.Elapsed += new ElapsedEventHandler(attackTimer_Elapsed);
+            this.attackTimer.Interval = Math.Ceiling((double)(60000 / this.agility));
+            this.attackTimer.Start();
         }
 
         #region Attribute Accessors
@@ -257,8 +276,7 @@ namespace MUDAdventure
             this.z = this.spawnZ;
 
             this.currentHitpoints = this.totalHitpoints;
-
-            //TODO: implement spawn event so that users see "An NPC arrives." instead of it just all of a sudden existing.
+            
             this.OnNPCSpawned(new SpawnedEventArgs(this.name, this.x, this.y, this.z));
         }
 
@@ -290,19 +308,7 @@ namespace MUDAdventure
             {
                 handler(this, e);
             }
-        }
-
-       
-
-        protected virtual void OnNPCDied(DiedEventArgs e)
-        {
-            EventHandler<DiedEventArgs> handler = this.NPCDied;
-
-            if (handler != null)
-            {
-                handler(this, e);
-            }
-        }
+        }             
 
         protected virtual void OnNPCSpawned(SpawnedEventArgs e)
         {
@@ -324,6 +330,26 @@ namespace MUDAdventure
 
             this.Spawn();
         }
-        
+
+        protected virtual void attackTimer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            if (this.inCombat)
+            {
+                if (!this.combatTarget.IsDead)
+                {
+                    //TODO: sub in actual damage calculation
+                    this.combatTarget.ReceiveAttack(this, 5, this.name);
+                }
+                else
+                {
+                    this.combatTarget = null;
+                    this.attackTimer.Enabled = false;
+                }
+            }
+            else
+            {
+                this.attackTimer.Enabled = false;
+            }
+        }
     }
 }

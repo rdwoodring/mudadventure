@@ -63,6 +63,7 @@
     <Compile Include="Colorizer.cs" />
     <Compile Include="Custom Args\AttackedAndDodgeEventArgs.cs" />
     <Compile Include="Custom Args\AttackedAndHitEventArgs.cs" />
+    <Compile Include="Custom Args\AttackEventArgs.cs" />
     <Compile Include="Custom Args\DiedEventArgs.cs" />
     <Compile Include="Custom Args\FledEventArgs.cs" />
     <Compile Include="Custom Args\FleeFailEventArgs.cs" />

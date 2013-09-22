@@ -23,6 +23,9 @@ namespace MUDAdventure
 
         public event EventHandler<AttackedAndHitEventArgs> AttackedAndHit;
         public event EventHandler<AttackedAndDodgeEventArgs> AttackedAndDodge;
+        public event EventHandler<DiedEventArgs> Died;
+        public event EventHandler<AttackEventArgs> Attack;
+        //TODO: add an event for the inital attack so that the defender can start their own attack timer and respond in kind
 
         #region Finite State Machines
 
@@ -121,10 +124,12 @@ namespace MUDAdventure
 
         #endregion
 
-        public void ReceiveAttack(int potentialdamage, string attackerName)
+        public virtual void ReceiveAttack(Character sender, int potentialdamage, string attackerName)
         {
             bool success = true;            
             this.inCombat = true;
+
+            this.combatTarget = sender;
 
             //dodging an attack
             if (this.rand.Next(1, 101) <= this.agility)
@@ -162,7 +167,20 @@ namespace MUDAdventure
             }
         }
 
-        protected virtual void Die() { }
+        protected virtual void Die() 
+        {
+            this.OnDied(new DiedEventArgs(this.name, this.combatTarget.Name, this.x, this.y, this.z));
+        }
+
+        protected void OnDied(DiedEventArgs e)
+        {
+            EventHandler<DiedEventArgs> handler = this.Died;
+
+            if (handler != null)
+            {
+                handler(this, e);
+            }
+        }
 
         protected void OnAttackedAndHit(AttackedAndHitEventArgs e)
         {
@@ -177,6 +195,16 @@ namespace MUDAdventure
         protected void OnAttackedAndDodge(AttackedAndDodgeEventArgs e)
         {
             EventHandler<AttackedAndDodgeEventArgs> handler = this.AttackedAndDodge;
+
+            if (handler != null)
+            {
+                handler(this, e);
+            }
+        }
+
+        protected void OnAttack(AttackEventArgs e)
+        {
+            EventHandler<AttackEventArgs> handler = this.Attack;
 
             if (handler != null)
             {

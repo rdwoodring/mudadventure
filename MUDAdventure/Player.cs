@@ -134,8 +134,8 @@ namespace MUDAdventure
                         try
                         {
                             var playerAlreadyConnectedQuery = (from player in players
-                                                               where player.name.ToLower() == tempName.ToLower()
-                                                               select player).First();
+                                                              where player.name.ToLower() == tempName.ToLower()
+                                                              select player).FirstOrDefault();
                             if (playerAlreadyConnectedQuery != null)
                             {
                                 alreadyConnected = true;
@@ -219,6 +219,9 @@ namespace MUDAdventure
                                             player.PlayerFled += this.HandlePlayerFled;
                                             player.PlayerFleeFail += this.HandlePlayerFleeFail;
                                             player.AttackedAndHit += this.HandleAttackedAndHit;
+                                            player.AttackedAndDodge += this.HandleAttackedAndDodge;
+                                            player.Died += this.HandlePlayerDied;
+                                            player.Attack += this.HandlePlayerAttack;
                                         }
                                     }
                                     catch (Exception ex)
@@ -242,7 +245,7 @@ namespace MUDAdventure
                                         npc.NPCMoved += this.HandleNPCMoved;
                                         npc.NPCFleeFail += this.HandleNPCFleeFail;
                                         npc.AttackedAndHit += this.HandleAttackedAndHit;
-                                        npc.NPCDied += this.HandleNPCDied;
+                                        npc.Died += this.HandleNPCDied;
                                         npc.NPCSpawned += this.HandleNPCSpawned;
                                         npc.AttackedAndDodge += this.HandleAttackedAndDodge;
                                     }
@@ -1297,6 +1300,28 @@ namespace MUDAdventure
                             Monitor.Exit(npclock);
                         }
 
+                        //check to see if any players are here
+                        Monitor.TryEnter(playerlock, 3000);
+                        try
+                        {
+                            List<Player> playerQuery = (from player in this.players
+                                                        where player.X == this.x && player.Y == this.y && player.Z == this.z && player != this
+                                                        select player).ToList();
+                            foreach (Player player in playerQuery)
+                            {
+                                message += "\r\n" + player.Name + " is here.";
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.Print(ex.Message);
+                            Debug.Print(ex.StackTrace);
+                        }
+                        finally
+                        {
+                            Monitor.Exit(playerlock);
+                        }
+
                         //check to see if any items are here
                         Monitor.TryEnter(itemlock, 3000);
                         try
@@ -1605,19 +1630,17 @@ namespace MUDAdventure
             if (!this.inCombat)
             {
                 if (!this.isNight || this.currentRoom.LightedRoom || this.inventory.Light != null)
-                {                    
+                {
+                    List<Character> targets = new List<Character>();
+                    
+                    //check for the potential target in the NPC list
                     Monitor.TryEnter(npclock, 3000);
                     try
                     {
                         var target = (from npc in this.npcs
                                       where npc.X == this.x && npc.Y == this.y && npc.Z == this.z && npc.RefNames.Contains(args)
                                       select npc).ToList();
-
-                        if (target.Count > 0)
-                        {
-                            this.combatTarget = target.First();
-                            this.combatTarget.CombatTarget = this;
-                        }
+                        targets.AddRange(target);
                     }
                     catch (Exception ex)
                     {
@@ -1629,8 +1652,35 @@ namespace MUDAdventure
                         Monitor.Exit(npclock);
                     }
 
+                    //now check for the potential target in the Player list
+                    Monitor.TryEnter(playerlock, 3000);
+                    try
+                    {
+                        var target = (from player in this.players
+                                      where player.X == this.x && player.Y == this.y && player.Z == this.Z && player.Name.ToLower() == args.ToLower() && player != this
+                                      select player).ToList();
+
+                        targets.AddRange(target);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.Print(ex.Message);
+                        Debug.Print(ex.StackTrace);
+                    }
+                    finally
+                    {
+                        Monitor.Exit(playerlock);
+                    }
+
+                    if (targets.Count > 0)
+                    {
+                        this.combatTarget = targets.First();
+                        this.combatTarget.CombatTarget = this;
+                    }
+
                     if (this.combatTarget != null)
                     {
+                        this.OnAttack(new AttackEventArgs(this.combatTarget, this.x, this.y, this.z));
                         this.attackTimer = new System.Timers.Timer();
                         this.attackTimer.Elapsed += new ElapsedEventHandler(attackTimer_Elapsed);
                         this.attackTimer.Interval = Math.Ceiling((double)(60000 / this.agility));
@@ -1689,6 +1739,7 @@ namespace MUDAdventure
                         player.PlayerFled -= this.HandlePlayerFled;
                         player.PlayerFleeFail -= this.HandlePlayerFleeFail;
                         player.AttackedAndHit -= this.HandleAttackedAndHit;
+                        player.Died -= this.HandlePlayerDied;
                     }
 
                     foreach (NPC npc in this.npcs)
@@ -1697,7 +1748,7 @@ namespace MUDAdventure
                         npc.NPCMoved -= this.HandleNPCMoved;
                         npc.NPCFleeFail -= this.HandleNPCFleeFail;
                         npc.AttackedAndHit -= this.HandleAttackedAndHit;
-                        npc.NPCDied -= this.HandleNPCDied;
+                        npc.Died -= this.HandleNPCDied;
                         npc.NPCSpawned -= this.HandleNPCSpawned;
                         npc.AttackedAndDodge -= this.HandleAttackedAndDodge;
                     }
@@ -2192,11 +2243,61 @@ namespace MUDAdventure
             }
         }
 
-         protected override void Die()
+        protected override void Die()
         {
+            base.Die();
+
+            this.attackTimer.Enabled = false;
+
+            this.writeToClient("You fall to one knee and gasp for breath.\r\nYour wounds are overwhelming you.\r\nAs the world begins to fade, " + this.combatTarget.Name + " stands over you, then finishes you off.\r\n" + colorizer.Colorize("You are DEAD!\r\n", "red"));
+            
             this.inCombat = false;
             this.combatTarget = null;
             this.isDead = true;
+        }
+
+        public override void ReceiveAttack(Character sender, int potentialdamage, string attackerName)
+        {
+            bool success = true;
+            this.inCombat = true;
+
+            this.combatTarget = sender;
+
+            //dodging an attack
+            if (this.rand.Next(1, 101) <= this.agility)
+            {
+                //raise attacked and dodged event
+                this.OnAttackedAndDodge(new AttackedAndDodgeEventArgs(attackerName, this.name, this.x, this.y, this.z));
+                success = false;
+            }
+
+            //TODO: implement parrying an attack
+
+            if (success)
+            {
+                Monitor.TryEnter(this.hplock);
+                try
+                {
+                    this.currentHitpoints -= potentialdamage;
+                    this.writeToClient(sender.Name + " hits you, doing some damage.\r\n");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error: {0}", ex.Message);
+                    Console.WriteLine("Trace: {0}", ex.StackTrace);
+                }
+                finally
+                {
+                    Monitor.Exit(this.hplock);
+                }
+
+                this.OnAttackedAndHit(new AttackedAndHitEventArgs(attackerName, this.name, this.x, this.y, this.z));
+
+                if (this.currentHitpoints <= 0)
+                {
+                    this.Die();
+                }
+            }            
         }
 
 
@@ -2359,6 +2460,23 @@ namespace MUDAdventure
             }
         }
 
+        private void HandlePlayerDied(object sender, DiedEventArgs e)
+        {
+            if (e.X == this.x && e.Y == this.y && e.Z == this.z)
+            {
+                if (sender == this.combatTarget)
+                {
+                    //this.combatTarget = null;
+                    this.inCombat = false;
+                    this.writeToClient(e.DefenderName + " collapsed... DEAD!\r\n");
+                }
+                else
+                {
+                    this.writeToClient(e.AttackerName + " slays " + e.DefenderName + "\r\n");
+                }
+            }
+        }
+
         private void HandleNPCSpawned(object sender, SpawnedEventArgs e)
         {
             if (e.X == this.x && e.Y == this.y && e.Z == this.z)
@@ -2391,12 +2509,35 @@ namespace MUDAdventure
             if (!this.combatTarget.IsDead)
             {
                 //TODO: sub in actual damage calculation
-                this.combatTarget.ReceiveAttack(5, this.name);
+                this.combatTarget.ReceiveAttack(this, 5, this.name);
             }
             else
             {
                 this.combatTarget = null;
                 this.attackTimer.Enabled = false;
+            }
+        }
+
+        private void HandlePlayerAttack(object sender, AttackEventArgs e)
+        {
+            if (e.X == this.x && e.Y == this.y && e.Z == this.z)
+            {
+                Character attacker = (Character)sender;
+
+                if (e.CombatTarget == this)
+                {
+                    this.inCombat = true;
+                    this.combatTarget = attacker;
+                    
+                    this.attackTimer = new System.Timers.Timer();
+                    this.attackTimer.Elapsed += new ElapsedEventHandler(attackTimer_Elapsed);
+                    this.attackTimer.Interval = Math.Ceiling((double)(60000 / this.agility));
+                    this.attackTimer.Start();
+                }
+                else
+                {
+                    this.writeToClient(attacker.Name + " ATTACKS " + e.CombatTarget.Name + ".\r\n");
+                }
             }
         }
 

@@ -73,7 +73,7 @@ namespace MUDAdventure.Items
 
             this.fuelTimer = new Timer();
 
-            this.fuelTimer.Elapsed += new ElapsedEventHandler(fuelTimer_Elapsed);
+            this.fuelTimer.Elapsed += new ElapsedEventHandler(fuelTimer_Elapsed);            
 
             this.fuelTimer.Interval = this.currentFuel;
             this.fuelTimer.Enabled = true;
