@@ -27,7 +27,7 @@ namespace MUDAdventure
 
         protected System.Timers.Timer respawnTimer;
 
-        public NPC(int spx, int spy, int spz, string n, string d, List<string> refnames, int sptime, int hp, int wimp, ObservableCollection<Player> playerList, Dictionary<string, Room> roomList, int str, int agi, int con, int intel, int lea)
+        public NPC(int spx, int spy, int spz, string n, string d, List<string> refnames, int sptime, int hp, int wimp, ObservableCollection<Player> playerList, Dictionary<string, Room> roomList, int lev, int str, int agi, int con, int intel, int lea)
         {
             this.spawnX = spx;
             this.spawnY = spy;
@@ -65,7 +65,9 @@ namespace MUDAdventure
             this.agility = agi;
             this.constitution = con;
             this.intelligence = intel;
-            this.learning = lea;            
+            this.learning = lea;
+
+            this.level = lev;
         }
         
 

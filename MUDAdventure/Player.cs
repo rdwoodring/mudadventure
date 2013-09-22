@@ -40,6 +40,7 @@ namespace MUDAdventure
         private List<Item> expirableItemList;   
         private int worldTime; //what time it is according to the world's clock                
         private double maxCarryWeight;
+        private int totalExp;
 
         /****************************************/
         /*           TIMERS                     */
@@ -672,6 +673,9 @@ namespace MUDAdventure
             this.totalHitpoints = 10;
             this.currentHitpoints = this.totalHitpoints;
 
+            //TODO: REPLACE THIS WITH LOADING XP FROM db
+            this.totalExp = 0;
+
             this.Look();
 
             this.InputLoop();
@@ -815,6 +819,10 @@ namespace MUDAdventure
             {
                 this.Info();
             }
+            else if (input.StartsWith("who"))
+            {
+                this.Who();
+            }
             else if (input.StartsWith("flee"))
             {
                 this.Flee();
@@ -948,6 +956,39 @@ namespace MUDAdventure
             else
             {
                 this.writeToClient("You're not carrying any such item.\r\n");
+            }
+        }
+
+        private void Who()
+        {
+            StringBuilder message = new StringBuilder();
+            List<Player> tempplayers = new List<Player>();
+
+            Monitor.TryEnter(playerlock, 3000);
+            try
+            {
+                tempplayers = this.players.ToList<Player>();
+            }
+            catch (Exception ex)
+            {
+                Debug.Print(ex.Message);
+                Debug.Print(ex.StackTrace);
+            }
+            finally
+            {
+                Monitor.Exit(playerlock);
+            }
+
+            if (tempplayers != null)
+            {
+                message.AppendLine("\r\nPlayers:");
+                foreach (Player player in tempplayers)
+                {
+                    message.AppendLine("[" + player.Level + "] " + player.Name);
+                }
+
+                this.writeToClient(message.ToString() + "\r\n");
+
             }
         }
 
@@ -2450,6 +2491,10 @@ namespace MUDAdventure
                 if (sender == this.combatTarget)
                 {
                     //this.combatTarget = null;
+                    double baseXp = Math.Ceiling(Math.Sqrt(Math.Pow(Convert.ToDouble(this.combatTarget.Level) * 5000.0, 1.0 + (Convert.ToDouble(this.combatTarget.Level) / 100.0))));
+
+                    Debug.Print("\r\n" + baseXp.ToString());
+
                     this.inCombat = false;
                     this.writeToClient(e.DefenderName + " collapsed... DEAD!\r\n");
                 }

@@ -54,7 +54,7 @@ namespace MUDAdventure
             }
 
             //TODO: add code for loading npcs from DB
-            NPC npc = new NPC(0, 0, 0, "An NPC", "An NPC is standing here.  It has no form and nothing on.", new List<string> { "NPC" }, 60000, 10, 0, this.players, this.rooms, 1, 1, 1, 1, 1);
+            NPC npc = new NPC(0, 0, 0, "An NPC", "An NPC is standing here.  It has no form and nothing on.", new List<string> { "NPC" }, 60000, 10, 1, this.players, this.rooms ,1, 1, 1, 1, 1, 1);
             this.npcs.Add( npc);
 
             //creating some test items

@@ -122,6 +122,11 @@ namespace MUDAdventure
             set { this.name = value; }
         }
 
+        public int Level
+        {
+            get { return this.level; }
+        }
+
         #endregion
 
         public virtual void ReceiveAttack(Character sender, int potentialdamage, string attackerName)
