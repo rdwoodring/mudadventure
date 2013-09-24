@@ -2,12 +2,6 @@
 <ordesignerObjectsDiagram dslVersion="1.0.0.0" absoluteBounds="0, 0, 11, 8.5" name="MUDAdventure">
   <DataContextMoniker Name="/MUDAdventureDataContext" />
   <nestedChildShapes>
-    <classShape Id="9971bebb-0f6c-4b8a-8df8-9773128d55e6" absoluteBounds="0.625, 0.5, 2, 3.5016097005208326">
-      <DataClassMoniker Name="/MUDAdventureDataContext/PlayerCharacter" />
-      <nestedChildShapes>
-        <elementListCompartment Id="900b69d3-5afa-4df8-83fa-38ec80ae3e51" absoluteBounds="0.64000000000000012, 0.96, 1.9700000000000002, 2.941609700520833" name="DataPropertiesCompartment" titleTextColor="Black" itemTextColor="Black" />
-      </nestedChildShapes>
-    </classShape>
     <classShape Id="2d9efc0d-c36c-4758-bf7f-a5130fe61dac" absoluteBounds="3.375, 2, 2, 1.1939925130208335">
       <DataClassMoniker Name="/MUDAdventureDataContext/InventoryItemStatus" />
       <nestedChildShapes>
@@ -27,10 +21,16 @@
         <classShapeMoniker Id="f6b3da1d-0f84-43b5-bfba-ce11090c1d5b" />
       </nodes>
     </associationConnector>
-    <associationConnector edgePoints="[(2.625 : 1.28125); (7.125 : 1.28125)]" fixedFrom="Algorithm" fixedTo="Algorithm">
+    <classShape Id="7d0f8134-8175-476a-b996-5054b9ce7be7" absoluteBounds="0.75, 0.625, 2, 3.6939111328124996">
+      <DataClassMoniker Name="/MUDAdventureDataContext/PlayerCharacter" />
+      <nestedChildShapes>
+        <elementListCompartment Id="c3ae2e58-90c6-47ab-88ce-9ab13ee8f380" absoluteBounds="0.76500000000000012, 1.085, 1.9700000000000002, 3.1339111328125" name="DataPropertiesCompartment" titleTextColor="Black" itemTextColor="Black" />
+      </nestedChildShapes>
+    </classShape>
+    <associationConnector edgePoints="[(2.75 : 1.28125); (7.125 : 1.28125)]" fixedFrom="Algorithm" fixedTo="Algorithm">
       <AssociationMoniker Name="/MUDAdventureDataContext/PlayerCharacter/PlayerCharacter_InventoryItem" />
       <nodes>
-        <classShapeMoniker Id="9971bebb-0f6c-4b8a-8df8-9773128d55e6" />
+        <classShapeMoniker Id="7d0f8134-8175-476a-b996-5054b9ce7be7" />
         <classShapeMoniker Id="f6b3da1d-0f84-43b5-bfba-ce11090c1d5b" />
       </nodes>
     </associationConnector>

@@ -68,6 +68,7 @@
     <Compile Include="Custom Args\FledEventArgs.cs" />
     <Compile Include="Custom Args\FleeFailEventArgs.cs" />
     <Compile Include="Custom Args\LightExpiredEventArgs.cs" />
+    <Compile Include="ExperienceChart.cs" />
     <Compile Include="Inventory.cs" />
     <Compile Include="Items\Apparel.cs" />
     <Compile Include="Items\Axe.cs" />

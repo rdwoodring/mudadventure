@@ -24,6 +24,7 @@ namespace MUDAdventure
         //public event EventHandler<AttackedAndHitEventArgs> PlayerAttackedAndHit;
 
         private static Colorizer colorizer = new Colorizer();
+        private static ExperienceChart expChart = new ExperienceChart();
 
         //TODO: temporary solution, what a headache this gave me.  stupid debug folder making copies of databases YAAAARRRRGHGH!
         private MUDAdventureDataContext db = new MUDAdventureDataContext(@"C:\Users\rswoody\Documents\Visual Studio 2010\Projects\MUDAdventure\MUDAdventure\MUDAdventure.mdf");
@@ -32,7 +33,6 @@ namespace MUDAdventure
         NetworkStream clientStream;
         ASCIIEncoding encoder;
         
-        private int expUntilNext;        
         private ObservableCollection<Player> players; //a list of all connected players
         private Dictionary<string, Room> rooms; //a dictionary of all rooms where the key is "x,y,z"
         private List<NPC> npcs; //a list of all npcs
@@ -40,7 +40,7 @@ namespace MUDAdventure
         private List<Item> expirableItemList;   
         private int worldTime; //what time it is according to the world's clock                
         private double maxCarryWeight;
-        private int totalExp;
+        private int currentLevelExp, totalExperience;
 
         /****************************************/
         /*           TIMERS                     */
@@ -109,7 +109,7 @@ namespace MUDAdventure
 
 
         public void initialize(object e)
-        {
+        {            
             this.clientStream = tcpClient.GetStream();
             this.encoder = new ASCIIEncoding();
 
@@ -268,13 +268,15 @@ namespace MUDAdventure
                                 this.z = playerQuery[0].Z;
 
                                 this.level = playerQuery[0].Level;
-                                this.expUntilNext = playerQuery[0].ExpUntilNext;
 
                                 this.strength = playerQuery[0].Strength;
                                 this.agility = playerQuery[0].Agility;
                                 this.constitution = playerQuery[0].Constitution;
                                 this.intelligence = playerQuery[0].Intelligence;
                                 this.learning = playerQuery[0].Learning;
+
+                                this.totalExperience = playerQuery[0].TotalExperience;
+                                this.currentLevelExp = playerQuery[0].ExpThisLevel;
 
                                 var itemsQuery = (from item in db.InventoryItems
                                                   where item.PlayerName.ToLower() == this.name.ToLower()
@@ -621,7 +623,8 @@ namespace MUDAdventure
                             newPlayer.Level = 1;
 
                             //TODO: insert real EXP til next value here once i calculate the experience progression
-                            newPlayer.ExpUntilNext = 1000;
+                            newPlayer.ExpThisLevel = 0;
+                            newPlayer.TotalExperience = 0;
 
                             try
                             {
@@ -640,7 +643,7 @@ namespace MUDAdventure
                                 this.z = newPlayer.Z;
 
                                 this.level = newPlayer.Level;
-                                this.expUntilNext = newPlayer.ExpUntilNext;
+                                //this.expUntilNext = newPlayer.ExpUntilNext;
 
                                 this.strength = newPlayer.Strength;
                                 this.agility = newPlayer.Agility;
@@ -673,8 +676,6 @@ namespace MUDAdventure
             this.totalHitpoints = 10;
             this.currentHitpoints = this.totalHitpoints;
 
-            //TODO: REPLACE THIS WITH LOADING XP FROM db
-            this.totalExp = 0;
 
             this.Look();
 
@@ -984,7 +985,7 @@ namespace MUDAdventure
                 message.AppendLine("\r\nPlayers:");
                 foreach (Player player in tempplayers)
                 {
-                    message.AppendLine("[" + player.Level + "] " + player.Name);
+                    message.AppendLine("[Lvl " + player.Level + "] " + player.Name);
                 }
 
                 this.writeToClient(message.ToString() + "\r\n");
@@ -1657,7 +1658,17 @@ namespace MUDAdventure
         private void Info()
         {
             StringBuilder message = new StringBuilder();
-            message.AppendLine("You are " + this.name + ".");
+            message.AppendLine("You are " + this.name + ". You are currently level " + this.level + ".");
+            message.AppendLine("You've earned " + this.totalExperience + " total experience points.");
+            if (this.level < 100)
+            {
+                message.AppendLine("You've earned " + this.currentLevelExp + " experience points this level and need " + (expChart.ExpChart[this.level + 1] - this.currentLevelExp) + " more to advance.");
+            }
+            else
+            {
+                message.AppendLine("You've maxed out at level 100. Try the PRESTIGE command to reset, with a stat boost, of course.");
+                //TODO: create prestige command and counter
+            }
             message.AppendLine("HP: " + this.currentHitpoints + "/" + this.totalHitpoints + "; MV: " + this.currentMoves + "/" + this.totalMoves);
             message.AppendLine("You are carrying " + this.inventory.Weight + "/" + this.maxCarryWeight + " pounds.");
             message.AppendLine("STR: " + this.strength + ", AGI: " + this.agility + ", CON: " + this.constitution + ", INT: " + this.intelligence + ", LEA: " + this.learning);
@@ -1820,6 +1831,9 @@ namespace MUDAdventure
                 playerQuery.X = this.x;
                 playerQuery.Y = this.y;
                 playerQuery.Z = this.z;
+
+                playerQuery.TotalExperience = this.totalExperience;
+                playerQuery.ExpThisLevel = this.currentLevelExp;
 
                 //now to save items in db
 
@@ -2297,6 +2311,18 @@ namespace MUDAdventure
             this.isDead = true;
         }
 
+        private void LevelUp()
+        {
+            this.level++;
+            this.writeToClient("Congrats!  You've gained a level!\r\n");
+            if (expChart.ExpChart[level] - this.currentLevelExp < 0)
+            {
+                int tempXp = Math.Abs(expChart.ExpChart[level] - this.currentLevelExp);
+                this.currentLevelExp = 0;
+                this.currentLevelExp = tempXp;
+            }
+        }
+
         public override void ReceiveAttack(Character sender, int potentialdamage, string attackerName)
         {
             bool success = true;
@@ -2491,12 +2517,23 @@ namespace MUDAdventure
                 if (sender == this.combatTarget)
                 {
                     //this.combatTarget = null;
+                    //TODO: extract this into a helper method so that handleplayerdied can call it too to keep this DRY
                     double baseXp = Math.Ceiling(Math.Sqrt(Math.Pow(Convert.ToDouble(this.combatTarget.Level) * 5000.0, 1.0 + (Convert.ToDouble(this.combatTarget.Level) / 100.0))));
-
-                    Debug.Print("\r\n" + baseXp.ToString());
-
+                    int adjustedXp = Convert.ToInt32(Math.Ceiling(baseXp * (this.combatTarget.Level / this.level)));
+                    
                     this.inCombat = false;
-                    this.writeToClient(e.DefenderName + " collapsed... DEAD!\r\n");
+                    this.writeToClient(e.DefenderName + " collapsed... DEAD!\r\nYour share of the experience is " + adjustedXp + " points.\r\n");
+                    
+                    this.currentLevelExp += adjustedXp;
+                    this.totalExperience += adjustedXp;
+
+                    if (this.level < 100)
+                    {
+                        if (this.currentLevelExp >= expChart.ExpChart[this.level+1])
+                        {
+                            this.LevelUp();
+                        }
+                    }
                 }
                 else
                 {
