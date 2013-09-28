@@ -1,24 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?><Database Name="MUDAdventure" Class="MUDAdventureDataContext" xmlns="http://schemas.microsoft.com/linqtosql/dbml/2007">
   <Connection Mode="AppSettings" ConnectionString="Data Source=.\SQLEXPRESS;AttachDbFilename=|DataDirectory|\MUDAdventure.mdf;Integrated Security=True;User Instance=True" SettingsObjectName="MUDAdventure.Properties.Settings" SettingsPropertyName="MUDAdventureConnectionString" Provider="System.Data.SqlClient" />
-  <Table Name="dbo.PlayerCharacters" Member="PlayerCharacters">
-    <Type Name="PlayerCharacter">
-      <Column Name="PlayerName" Type="System.String" DbType="NVarChar(20) NOT NULL" IsPrimaryKey="true" CanBeNull="false" />
-      <Column Name="Password" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
-      <Column Name="Strength" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
-      <Column Name="Agility" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
-      <Column Name="Intelligence" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
-      <Column Name="Learning" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
-      <Column Name="Constitution" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
-      <Column Name="X" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
-      <Column Name="Y" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
-      <Column Name="Z" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
-      <Column Name="[Level]" Member="Level" Type="System.Int32" DbType="Int" CanBeNull="false" />
-      <Column Name="ExpUntilNext" AutoSync="OnInsert" Type="System.Int32" DbType="Int" CanBeNull="false" />
-      <Column Name="Class" Type="System.Int32" DbType="Int" CanBeNull="true" />
-      <Column Name="Race" Type="System.Int32" DbType="Int" CanBeNull="true" />
-      <Association Name="PlayerCharacter_InventoryItem" Member="InventoryItems" ThisKey="PlayerName" OtherKey="PlayerName" Type="InventoryItem" />
-    </Type>
-  </Table>
   <Table Name="dbo.InventoryItemStatuses" Member="InventoryItemStatus">
     <Type Name="InventoryItemStatus">
       <Column Name="[Index]" Member="Index" Type="System.Int32" DbType="Int NOT NULL IDENTITY" IsPrimaryKey="true" IsDbGenerated="true" CanBeNull="false" />
@@ -43,6 +24,26 @@
       <Column Name="ItemType" Type="System.String" DbType="NVarChar(500) NOT NULL" CanBeNull="false" />
       <Association Name="InventoryItemStatus_InventoryItem" Member="InventoryItemStatus" ThisKey="ItemInventoryStatusCode" OtherKey="Index" Type="InventoryItemStatus" IsForeignKey="true" />
       <Association Name="PlayerCharacter_InventoryItem" Member="PlayerCharacter" ThisKey="PlayerName" OtherKey="PlayerName" Type="PlayerCharacter" IsForeignKey="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.PlayerCharacters" Member="PlayerCharacters">
+    <Type Name="PlayerCharacter">
+      <Column Name="PlayerName" Type="System.String" DbType="NVarChar(50) NOT NULL" IsPrimaryKey="true" CanBeNull="false" />
+      <Column Name="Password" Type="System.String" DbType="NVarChar(30) NOT NULL" CanBeNull="false" />
+      <Column Name="Strength" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Agility" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Intelligence" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Learning" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Constitution" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="X" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Y" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Z" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="[Level]" Member="Level" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="ExpThisLevel" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="Class" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="Race" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="TotalExperience" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Association Name="PlayerCharacter_InventoryItem" Member="InventoryItems" ThisKey="PlayerName" OtherKey="PlayerName" Type="InventoryItem" />
     </Type>
   </Table>
 </Database>

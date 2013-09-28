@@ -337,15 +337,18 @@ namespace MUDAdventure
         {
             if (this.inCombat)
             {
-                if (!this.combatTarget.IsDead)
+                if (this.combatTarget != null)
                 {
-                    //TODO: sub in actual damage calculation
-                    this.combatTarget.ReceiveAttack(this, 5, this.name);
-                }
-                else
-                {
-                    this.combatTarget = null;
-                    this.attackTimer.Enabled = false;
+                    if (!this.combatTarget.IsDead)
+                    {
+                        //TODO: sub in actual damage calculation
+                        this.combatTarget.ReceiveAttack(this, 5, this.name);
+                    }
+                    else
+                    {
+                        this.combatTarget = null;
+                        this.attackTimer.Enabled = false;
+                    }
                 }
             }
             else
