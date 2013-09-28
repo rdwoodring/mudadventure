@@ -788,6 +788,12 @@ namespace MUDAdventure
                     this.writeToClient("Kill who?");
                 }
             }
+            else if (input.StartsWith("con"))
+            {
+                string[] temp = input.Split(' ');
+                string args = temp[1];
+                this.Consider(args);
+            }
             else if (input.StartsWith("take"))
             {
                 if (input.Length > 4)
@@ -842,6 +848,96 @@ namespace MUDAdventure
         }
 
         #region Player Command Methods
+
+        private void Consider(string args)
+        {
+            List<NPC> npcQuery = new List<NPC>();
+            List<Player> playerQuery = new List<Player>(); ;
+            List<Character> considerTargets = new List<Character>();
+
+            Monitor.TryEnter(npclock, 3000);
+            try
+            {
+                npcQuery = (from character in this.npcs
+                            where character.X == this.x && character.Y == this.y && character.Z == this.z && character.RefNames.Contains(args.ToLower())
+                            select character).ToList();
+            }
+            catch (Exception ex)
+            {
+                Debug.Print(ex.Message);
+                Debug.Print(ex.StackTrace);
+            }
+            finally
+            {
+                Monitor.Exit(npclock);
+            }
+
+            Monitor.TryEnter(playerlock, 3000);
+            try
+            {
+                playerQuery = (from player in this.players
+                               where player.X == this.x && player.Y == this.y && player.Z == this.z && player.Name.ToLower() == args.ToLower()
+                               select player).ToList();
+            }
+            catch (Exception ex)
+            {
+                Debug.Print(ex.Message);
+                Debug.Print(ex.StackTrace);
+            }
+            finally
+            {
+                Monitor.Exit(playerlock);
+            }
+
+            considerTargets.AddRange(npcQuery.ToArray());
+            considerTargets.AddRange(playerQuery.ToArray());
+
+            if (considerTargets.Count > 0)
+            {
+                int levelDifference = considerTargets.First().Level - this.level;
+
+                if (levelDifference == 0)
+                {
+                    this.writeToClient(considerTargets.First().Name + " seems like the perfect match.\r\n");
+                }
+                else if (levelDifference == -1)
+                {
+                    this.writeToClient(considerTargets.First().Name + " seems a little bit weaker than you.\r\n");
+                }
+                else if (levelDifference == -2)
+                {
+                    this.writeToClient(considerTargets.First().Name + " seems a lot weaker than you.\r\n");
+                }
+                else if (levelDifference == -3)
+                {
+                    this.writeToClient(considerTargets.First().Name + " seems pretty pathetic compared to you.\r\n");
+                }
+                else if (levelDifference <= -4)
+                {
+                    this.writeToClient(considerTargets.First().Name + " cowers in fear when you glance at it.\r\n");
+                }
+                else if (levelDifference == 1)
+                {
+                    this.writeToClient(considerTargets.First().Name + " seems a little bit stronger than you.\r\n");
+                }
+                else if (levelDifference == 2)
+                {
+                    this.writeToClient(considerTargets.First().Name + " seems a lot stronger than you.\r\n");
+                }
+                else if (levelDifference == 3)
+                {
+                    this.writeToClient(considerTargets.First().Name + " seems VERY dangerous.\r\n");
+                }
+                else if (levelDifference >= 4)
+                {
+                    this.writeToClient("Your knees start to knock together when you glance at "+ considerTargets.First().Name +".\r\n");
+                }
+            }
+            else
+            {
+                this.writeToClient("Consider who??\r\n");
+            }
+        }
 
         private void Wear(string args)
         {
@@ -1835,6 +1931,8 @@ namespace MUDAdventure
                 playerQuery.TotalExperience = this.totalExperience;
                 playerQuery.ExpThisLevel = this.currentLevelExp;
 
+                playerQuery.Level = this.level;
+
                 //now to save items in db
 
                 //first let's get a list of all items currently saved for this player in the db
@@ -2262,7 +2360,6 @@ namespace MUDAdventure
                 
             }
 
-            Debug.Print(finalMessage);
             return finalMessage.TrimEnd('\r', '\n');
         }
 
@@ -2519,7 +2616,7 @@ namespace MUDAdventure
                     //this.combatTarget = null;
                     //TODO: extract this into a helper method so that handleplayerdied can call it too to keep this DRY
                     double baseXp = Math.Ceiling(Math.Sqrt(Math.Pow(Convert.ToDouble(this.combatTarget.Level) * 5000.0, 1.0 + (Convert.ToDouble(this.combatTarget.Level) / 100.0))));
-                    int adjustedXp = Convert.ToInt32(Math.Ceiling(baseXp * (this.combatTarget.Level / this.level)));
+                    int adjustedXp = Convert.ToInt32(Math.Ceiling(baseXp * (Convert.ToDouble(this.combatTarget.Level) / Convert.ToDouble(this.level))));
                     
                     this.inCombat = false;
                     this.writeToClient(e.DefenderName + " collapsed... DEAD!\r\nYour share of the experience is " + adjustedXp + " points.\r\n");
@@ -2590,7 +2687,16 @@ namespace MUDAdventure
         {
             if (!this.combatTarget.IsDead)
             {
-                //TODO: sub in actual damage calculation
+                int damage = 0;
+                if (this.inventory.Wielded != null)
+                {
+                    damage = Convert.ToInt32(Math.Sqrt(this.strength + this.inventory.Wielded.Damage) + rand.Next(1, this.level) + 1);
+                }
+                else
+                {
+                    damage = Convert.ToInt32(Math.Sqrt(this.strength + 0) + rand.Next(1, this.level) + 1);
+                }
+                Debug.Print(damage.ToString());
                 this.combatTarget.ReceiveAttack(this, 5, this.name);
             }
             else
