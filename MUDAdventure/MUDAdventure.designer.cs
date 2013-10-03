@@ -670,11 +670,13 @@ namespace MUDAdventure
 		
 		private int _Level;
 		
-		private System.Nullable<int> _ExpUntilNext;
+		private int _ExpThisLevel;
 		
 		private System.Nullable<int> _Class;
 		
 		private System.Nullable<int> _Race;
+		
+		private int _TotalExperience;
 		
 		private EntitySet<InventoryItem> _InventoryItems;
 		
@@ -704,12 +706,14 @@ namespace MUDAdventure
     partial void OnZChanged();
     partial void OnLevelChanging(int value);
     partial void OnLevelChanged();
-    partial void OnExpUntilNextChanging(System.Nullable<int> value);
-    partial void OnExpUntilNextChanged();
+    partial void OnExpThisLevelChanging(int value);
+    partial void OnExpThisLevelChanged();
     partial void OnClassChanging(System.Nullable<int> value);
     partial void OnClassChanged();
     partial void OnRaceChanging(System.Nullable<int> value);
     partial void OnRaceChanged();
+    partial void OnTotalExperienceChanging(int value);
+    partial void OnTotalExperienceChanged();
     #endregion
 		
 		public PlayerCharacter()
@@ -938,22 +942,22 @@ namespace MUDAdventure
 			}
 		}
 		
-		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_ExpUntilNext", DbType="Int")]
-		public System.Nullable<int> ExpUntilNext
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_ExpThisLevel", DbType="Int NOT NULL")]
+		public int ExpThisLevel
 		{
 			get
 			{
-				return this._ExpUntilNext;
+				return this._ExpThisLevel;
 			}
 			set
 			{
-				if ((this._ExpUntilNext != value))
+				if ((this._ExpThisLevel != value))
 				{
-					this.OnExpUntilNextChanging(value);
+					this.OnExpThisLevelChanging(value);
 					this.SendPropertyChanging();
-					this._ExpUntilNext = value;
-					this.SendPropertyChanged("ExpUntilNext");
-					this.OnExpUntilNextChanged();
+					this._ExpThisLevel = value;
+					this.SendPropertyChanged("ExpThisLevel");
+					this.OnExpThisLevelChanged();
 				}
 			}
 		}
@@ -994,6 +998,26 @@ namespace MUDAdventure
 					this._Race = value;
 					this.SendPropertyChanged("Race");
 					this.OnRaceChanged();
+				}
+			}
+		}
+		
+		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_TotalExperience", DbType="Int NOT NULL")]
+		public int TotalExperience
+		{
+			get
+			{
+				return this._TotalExperience;
+			}
+			set
+			{
+				if ((this._TotalExperience != value))
+				{
+					this.OnTotalExperienceChanging(value);
+					this.SendPropertyChanging();
+					this._TotalExperience = value;
+					this.SendPropertyChanged("TotalExperience");
+					this.OnTotalExperienceChanged();
 				}
 			}
 		}
