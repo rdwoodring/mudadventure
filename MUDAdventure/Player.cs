@@ -122,6 +122,7 @@ namespace MUDAdventure
 
                 if (tempName != null && tempName != "")
                 {
+                    //TODO: fix something when space is in name
                     var playerQuery =
                         (from playercharacter in db.PlayerCharacters
                         where playercharacter.PlayerName.ToString().ToLower() == tempName.ToLower()
@@ -275,8 +276,8 @@ namespace MUDAdventure
                                 this.intelligence = playerQuery[0].Intelligence;
                                 this.learning = playerQuery[0].Learning;
 
-                                this.totalExperience = playerQuery[0].TotalExperience;
-                                this.currentLevelExp = playerQuery[0].ExpThisLevel;
+                                //this.totalExperience = playerQuery[0].TotalExperience;
+                                //this.currentLevelExp = playerQuery[0].ExpThisLevel;
 
                                 var itemsQuery = (from item in db.InventoryItems
                                                   where item.PlayerName.ToLower() == this.name.ToLower()
@@ -623,8 +624,8 @@ namespace MUDAdventure
                             newPlayer.Level = 1;
 
                             //TODO: insert real EXP til next value here once i calculate the experience progression
-                            newPlayer.ExpThisLevel = 0;
-                            newPlayer.TotalExperience = 0;
+                            //newPlayer.ExpThisLevel = 0;
+                            //newPlayer.TotalExperience = 0;
 
                             try
                             {
@@ -1928,8 +1929,8 @@ namespace MUDAdventure
                 playerQuery.Y = this.y;
                 playerQuery.Z = this.z;
 
-                playerQuery.TotalExperience = this.totalExperience;
-                playerQuery.ExpThisLevel = this.currentLevelExp;
+                //playerQuery.TotalExperience = this.totalExperience;
+                //playerQuery.ExpThisLevel = this.currentLevelExp;
 
                 playerQuery.Level = this.level;
 

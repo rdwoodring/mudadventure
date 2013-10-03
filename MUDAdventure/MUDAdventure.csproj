@@ -107,6 +107,7 @@
     <Compile Include="Server.cs" />
     <Compile Include="Custom Args\SpawnedEventArgs.cs" />
     <Compile Include="Items\Weapon.cs" />
+    <Compile Include="Skills\Skill.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="MUDAdventure.mdf">

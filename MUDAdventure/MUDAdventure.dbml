@@ -39,10 +39,9 @@
       <Column Name="Y" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
       <Column Name="Z" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
       <Column Name="[Level]" Member="Level" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
-      <Column Name="ExpThisLevel" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
+      <Column Name="ExpUntilNext" Type="System.Int32" DbType="Int" CanBeNull="true" />
       <Column Name="Class" Type="System.Int32" DbType="Int" CanBeNull="true" />
       <Column Name="Race" Type="System.Int32" DbType="Int" CanBeNull="true" />
-      <Column Name="TotalExperience" Type="System.Int32" DbType="Int NOT NULL" CanBeNull="false" />
       <Association Name="PlayerCharacter_InventoryItem" Member="InventoryItems" ThisKey="PlayerName" OtherKey="PlayerName" Type="InventoryItem" />
     </Type>
   </Table>
