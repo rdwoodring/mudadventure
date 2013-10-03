@@ -14,6 +14,9 @@ using System.Reflection;
 
 namespace MUDAdventure
 { 
+    /// <summary>
+    /// The main class for all "player" objects
+    /// </summary>
     class Player : Character
     {
         public event EventHandler<PlayerConnectedEventArgs> PlayerConnected;
