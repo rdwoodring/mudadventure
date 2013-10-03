@@ -122,6 +122,7 @@ namespace MUDAdventure
 
                 if (tempName != null && tempName != "")
                 {
+
                     var playerQuery =
                         (from playercharacter in db.PlayerCharacters
                         where playercharacter.PlayerName.ToString().ToLower() == tempName.ToLower()
