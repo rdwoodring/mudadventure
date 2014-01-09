@@ -9,8 +9,10 @@ using System.Net.Sockets;
 using System.Timers;
 using System.Diagnostics;
 using System.Linq;
-using MUDAdventure.Items;
 using System.Reflection;
+
+using MUDAdventure.Items;
+using MUDAdventure.Skills;
 
 namespace MUDAdventure
 { 
@@ -27,7 +29,7 @@ namespace MUDAdventure
         //public event EventHandler<AttackedAndHitEventArgs> PlayerAttackedAndHit;
 
         private static Colorizer colorizer = new Colorizer();
-        private static ExperienceChart expChart = new ExperienceChart();
+        private static ExperienceChart expChart = new ExperienceChart();       
 
         //TODO: temporary solution, what a headache this gave me.  stupid debug folder making copies of databases YAAAARRRRGHGH!
         private MUDAdventureDataContext db = new MUDAdventureDataContext(@"C:\Users\rswoody\Documents\Visual Studio 2010\Projects\MUDAdventure\MUDAdventure\MUDAdventure.mdf");
@@ -35,7 +37,8 @@ namespace MUDAdventure
         private TcpClient tcpClient;
         NetworkStream clientStream;
         ASCIIEncoding encoder;
-        
+
+        private SkillTree universalSkillTree = new SkillTree();
         private ObservableCollection<Player> players; //a list of all connected players
         private Dictionary<string, Room> rooms; //a dictionary of all rooms where the key is "x,y,z"
         private List<NPC> npcs; //a list of all npcs
@@ -55,6 +58,7 @@ namespace MUDAdventure
         private static object npclock = new object();
         private static object itemlock = new object();
         private static object expirableitemlock = new object();
+        private static object skilltreelock = new object();
 
         /****************************************/
         /*        FINITE STATE MACHINES         */
@@ -66,7 +70,7 @@ namespace MUDAdventure
         //private bool isDead = false; //you don't wanna be this, you're dead HAH!
         //private bool isFleeing = false;
         
-        public Player(TcpClient client, ref ObservableCollection<Player> playerlist, Dictionary<string, Room> roomlist, ref List<NPC> npcs, System.Timers.Timer timer, int time, ref List<Item> itemlist, ref List<Item> expirableItemList)
+        public Player(TcpClient client, ref ObservableCollection<Player> playerlist, Dictionary<string, Room> roomlist, ref List<NPC> npcs, System.Timers.Timer timer, int time, ref List<Item> itemlist, ref List<Item> expirableItemList, SkillTree _universalSkillTree)
         {
             //assign a bunch of stuff that's passed in from the server then the Player is created in memory
             this.tcpClient = client;
@@ -76,6 +80,9 @@ namespace MUDAdventure
             this.rooms = roomlist;
             this.npcs = npcs;
             this.itemList = itemlist;
+
+            //the universal skill tree that lists all skills that can be learned along with each skill's effects etc.
+            this.universalSkillTree = _universalSkillTree;
 
             //timer stuff for saving player data at set intervals
             this.savePlayerTimer = new System.Timers.Timer();
@@ -103,13 +110,6 @@ namespace MUDAdventure
 
             this.expirableItemList = expirableItemList;
         }
-
-        //TODO: fix this accessor... this is not the way all the other accessors are
-        public string getName()
-        {
-            return this.name;
-        }
-
 
         public void initialize(object e)
         {            
@@ -180,7 +180,9 @@ namespace MUDAdventure
                                 }
                                 else
                                 {
+                                    this.writeToClient(colorizer.Colorize("INCORRECT PASSWORD", "red") + colorizer.Colorize("Please re-enter your password", "reset"));
                                     passwordAttempts++;
+
                                 }
                             }
                             while (passwordAttempts < 4 && successfullogin == false);
@@ -838,6 +840,15 @@ namespace MUDAdventure
             {
                 this.Flee();
             }
+            else if (input.StartsWith("skills"))
+            {
+                //TODO: list player's specific skills and proficiencies
+            }
+            else if (input.StartsWith("skill tree"))
+            {
+                //list the game's specific skill tree
+                this.DisplaySkillTree();
+            }
             else if (input == "exit")
             {
                 //TODO: implement event for disconnect so Server can update player list
@@ -852,6 +863,37 @@ namespace MUDAdventure
         }
 
         #region Player Command Methods
+
+        private void DisplaySkillTree()
+        {
+            StringBuilder sb = new StringBuilder();
+            SkillTree tempSkillTree = new SkillTree();
+
+            sb.AppendLine("\r\nSkill Tree\r\nFor more information type \"help <skillname>\"");
+            sb.AppendLine("Name\tLevel Req");
+
+            Monitor.TryEnter(skilltreelock, 3000);
+            try
+            {
+                tempSkillTree = this.universalSkillTree;
+            }
+            catch (Exception ex)
+            {
+                Debug.Print(ex.Message);
+                Debug.Print(ex.StackTrace);
+            }
+            finally
+            {
+                Monitor.Exit(skilltreelock);
+            }
+
+            foreach (Skill s in tempSkillTree.Skills)
+            {
+                sb.AppendLine(s.SkillName + "\tLvl " + s.LevelRequired);
+            }
+
+            this.writeToClient(sb.ToString());
+        }
 
         private void Consider(string args)
         {
@@ -2762,5 +2804,10 @@ namespace MUDAdventure
         //        }
         //    }
         //}
+
+        public string Name
+        {
+            get { return this.name; }
+        }
     }
 }

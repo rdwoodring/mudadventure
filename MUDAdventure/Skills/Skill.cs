@@ -8,7 +8,8 @@ namespace MUDAdventure.Skills
     class Skill
     {
         protected string skillName;
-        protected int difficulty, proficiency;
+        protected int difficulty;
+        protected int? proficiency;
         protected int effectOnHP, effectOnMP, effectOnMoves, effectOnCarryWeight; //negative number for a "cost," positive number for a "bonus"
         //protected int daggerProfRequired, swordProfRequired, axeProfRequired, parryProfRequired, dodgeProfRequired, roamerProfRequired, travellerProfRequired, packmuleProfRequired, oxenProfRequired, fieldmedicineProfRequired, sneakProfRequired, hideProfRequired, ambushProfRequired, pickpocketProfRequired, picklockProfRequired;
         protected Dictionary<string, int> preliminaryPrerequisites;
@@ -31,7 +32,7 @@ namespace MUDAdventure.Skills
         /// <param name="hpeffect">The effect that using this skill has on HP.  A positive number is an HP bonus, a negative number is an HP cost.</param>
         /// <param name="moveseffect">The effect that using this skill has on MP.  A positive number is an HP bonus, a negative number is an MP cost.</param>
         /// <param name="mpeffect">The effect that using this skill has on Moves.  A positive number is an HP bonus, a negative number is an Moves cost.</param>
-        public Skill(string name, int diff, int prof, int hpeffect, int mpeffect, int moveseffect, int carryeffect)
+        public Skill(string name, int diff, int? prof, int hpeffect, int mpeffect, int moveseffect, int carryeffect)
         {
             this.skillName = name;
             this.difficulty = diff;
@@ -43,7 +44,9 @@ namespace MUDAdventure.Skills
             this.effectOnCarryWeight = carryeffect;
 
             this.levelRequired = 0;
-            this.preliminaryPrerequisites = null;
+            this.preliminaryPrerequisites = new Dictionary<string, int>();
+
+            this.finalPrerequisites = new Dictionary<Skill, int>();
         }
 
         /// <summary>
@@ -58,7 +61,7 @@ namespace MUDAdventure.Skills
         /// <param name="carryeffect">The effect that using this skill has on Carrying capacity. A positive number is a Carrying capacity bonus, a negative number is a Carrying capacity cost</param>
         /// <param name="levelreq">The required minimum level needed to begin practicing this skill. 0-100</param>
         /// <param name="_preliminaryPrerequisites">A dictionary of "prerequisite" skills that must be learned before learning this skill.  Passed as key/pair format where the key is the skill's name as a string and the value is the required proficiency.  Profiency must be an int between 1-100.</param>
-        public Skill(string name, int diff, int prof, int hpeffect, int mpeffect, int moveseffect, int carryeffect, int levelreq, Dictionary<string, int> _preliminaryPrerequisites)
+        public Skill(string name, int diff, int? prof, int hpeffect, int mpeffect, int moveseffect, int carryeffect, int levelreq, Dictionary<string, int> _preliminaryPrerequisites)
         {
             this.skillName = name;
             this.difficulty = diff;
@@ -72,6 +75,8 @@ namespace MUDAdventure.Skills
             this.levelRequired = levelreq;
 
             this.preliminaryPrerequisites = _preliminaryPrerequisites;
+
+            this.finalPrerequisites = new Dictionary<Skill, int>();
         }
 
         #endregion
@@ -99,6 +104,7 @@ namespace MUDAdventure.Skills
                         else
                         {
                             //TODO: throw an exception.  Couldn't find the skill defined in the skill tree.  User should go back and review their skill tree file to ensure that all "prerequisite" skills that are referenced are defined.
+                            throw new Exception();
                         }
                     }
                 }
@@ -118,7 +124,7 @@ namespace MUDAdventure.Skills
             get { return this.difficulty; }
         }
 
-        public int Proficiency
+        public int? Proficiency
         {
             get { return this.proficiency; }
             set { this.proficiency = value; }

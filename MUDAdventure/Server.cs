@@ -11,6 +11,7 @@ using System.Xml;
 using System.IO;
 using System.Diagnostics;
 using MUDAdventure.Items;
+using MUDAdventure.Skills;
 
 namespace MUDAdventure
 {
@@ -28,6 +29,7 @@ namespace MUDAdventure
         private List<Item> expirableItemList = new List<Item>();
         private System.Timers.Timer worldTimer;
         private int time, hour;
+        private SkillTree skillTree;
 
         public Server()
         {
@@ -46,11 +48,11 @@ namespace MUDAdventure
             this.hour = 0; 
 
             //TODO: replace this xml file with rooms in a DB
-            Console.WriteLine("Attempting to read Rooms.xml...");
+            Console.Write("Attempting to read Rooms.xml...");
             this.ReadRoomFile();
             if (rooms.Count > 0)
             {
-                Console.WriteLine("Success!\r\nRead {0} rooms from the file.", rooms.Count);
+                Console.WriteLine(" Success!\r\nRead {0} rooms from the file.", rooms.Count);
             }
 
             //TODO: add code for loading npcs from DB
@@ -68,6 +70,21 @@ namespace MUDAdventure
 
             itemList.Add(new Light("A torch", "A simple torch made from a branch and an oily rag.", .5, 0, 0, 0, 10000, true, new List<string> { "torch" }, 90000));
             
+            //test skill data
+            //TODO: add code for reading skills from a file or DB so that MUD authors can 'dynamically' create diverse skill trees with minimal/no coding
+            List<Skill> skillTreeSkills = new List<Skill>();
+            skillTreeSkills.Add(new Skill("Dodge", 1, null, 0, 0, 0, 0));
+            skillTreeSkills.Add(new Skill("Parry", 1, null, 0, 0, 0, 0));
+            skillTreeSkills.Add(new Skill("Hide", 2, null, 0, 0, 0, 0));
+            skillTreeSkills.Add(new Skill("Sneak", 3, null, 0, 0, -2, 0, 5, new Dictionary<string, int>() {{"hide", 50}}));
+            skillTreeSkills.Add(new Skill("Ambush", 4, null, 0, 0, 0, 0, 7, new Dictionary<string, int> { { "sneak", 50 }, { "hide", 75 } }));
+
+            Console.WriteLine("Creating skill tree...");
+            this.skillTree = new SkillTree(skillTreeSkills);
+
+            Console.WriteLine("Initializing skills...");
+            this.skillTree.InitializeSkillTree();
+
         }
 
         private void ReadRoomFile()
@@ -119,7 +136,7 @@ namespace MUDAdventure
                 TcpClient client = this.tcpListener.AcceptTcpClient();
 
                 //when it does, we'll create a new player instance, passing in some stuff
-                Player player = new Player(client, ref players, rooms, ref npcs, this.worldTimer, this.hour, ref this.itemList, ref this.expirableItemList);                      
+                Player player = new Player(client, ref players, rooms, ref npcs, this.worldTimer, this.hour, ref this.itemList, ref this.expirableItemList, this.skillTree);
 
                 //then let's create a new thread and initialize our player instance
                 Thread clientThread = new Thread(new ParameterizedThreadStart(player.initialize));

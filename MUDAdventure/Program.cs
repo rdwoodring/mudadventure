@@ -16,7 +16,7 @@ namespace MUDAdventure
 
             Console.WriteLine("Server started. Listening for connections...");
 
-            while (serverInput != "exit")
+            while (serverInput.ToLower() != "exit")
             {
                 serverInput = Console.ReadLine();
             }

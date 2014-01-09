@@ -33,7 +33,16 @@ namespace MUDAdventure.Skills
             {
                 foreach(Skill s in this.skills)
                 {
-                    s.InitializeSkill(this);
+                    try
+                    {
+                        Console.Write("Attempting to initialize skill {0}...", s.SkillName);
+                        s.InitializeSkill(this);
+                        Console.WriteLine(" Success.");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Error. Encountered an exception");
+                    }                    
                 }
             }
             else
