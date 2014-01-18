@@ -12,7 +12,11 @@ using System.Linq;
 using System.Reflection;
 
 using MUDAdventure.Items;
+using MUDAdventure.Items.Apparel;
+using MUDAdventure.Items.Weapons;
 using MUDAdventure.Skills;
+using MUDAdventure.Skills.PassiveSkills;
+//using MUDAdventure.Skills.ActiveSkills;
 
 namespace MUDAdventure
 { 
@@ -99,14 +103,11 @@ namespace MUDAdventure
 
             //if the time that's initially passed in is before 6 AM or after 9 PM (21:00), it's night time
             //which means it's dark, so players can't see without a light UNLESS they are in a lighted room
-            //TODO: add torches and light sources
+            //TODO: something wrong with timing, fix this
             if (this.worldTime < 6 || this.worldTime > 21)
             {
                 isNight = true;
-            }
-
-            //TODO: peg this value to the strength statistic somehow
-            this.maxCarryWeight = 100;
+            }            
 
             this.expirableItemList = expirableItemList;
         }
@@ -284,6 +285,8 @@ namespace MUDAdventure
                                 this.totalExperience = playerQuery[0].TotalExperience;
                                 this.currentLevelExp = playerQuery[0].ExpThisLevel;
 
+                                this.maxCarryWeight = this.strength * 11.5;
+
                                 var itemsQuery = (from item in db.InventoryItems
                                                   where item.PlayerName.ToLower() == this.name.ToLower()
                                                   select item).ToList();
@@ -299,7 +302,7 @@ namespace MUDAdventure
                                         case "generalinventory":
                                             switch (item.ItemType)
                                             {
-                                                case "MUDAdventure.Items.Dagger":
+                                                case "MUDAdventure.Items.Weapons.Dagger":
                                                     //Dagger tempdag = new Dagger(item.ItemName, item.ItemDescription, item.ItemWeight, 0, 0, 0, 0, false, new List<string>(item.ItemRefNames.Split(',')), this.expirableItemList, item.ItemDamage, item.ItemSpeed);
                                                     tempitem = new Dagger();
 
@@ -326,7 +329,7 @@ namespace MUDAdventure
                                                         tempitem.TotalFuel = Convert.ToInt32(item.ItemTotalFuel);
                                                     }
                                                     break;
-                                                case "MUDAdventure.Items.Headwear":
+                                                case "MUDAdventure.Items.Apparel.Headwear":
                                                     tempitem = new Headwear();
 
                                                     if (item.ItemArmorValue.HasValue)
@@ -334,7 +337,7 @@ namespace MUDAdventure
                                                         tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
                                                     }
                                                     break;
-                                                case "MUDAdventure.Items.Shirt":
+                                                case "MUDAdventure.Items.Apparel.Shirt":
                                                     tempitem = new Shirt();
 
                                                     if (item.ItemArmorValue.HasValue)
@@ -342,7 +345,7 @@ namespace MUDAdventure
                                                         tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
                                                     }
                                                     break;
-                                                case "MUDAdventure.Items.Gloves":
+                                                case "MUDAdventure.Items.Apparel.Gloves":
                                                     tempitem = new Gloves();
 
                                                     if (item.ItemArmorValue.HasValue)
@@ -350,7 +353,7 @@ namespace MUDAdventure
                                                         tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
                                                     }
                                                     break;
-                                                case "MUDAdventure.Items.Pants":
+                                                case "MUDAdventure.Items.Apparel.Pants":
                                                     tempitem = new Pants();
 
                                                     if (item.ItemArmorValue.HasValue)
@@ -358,7 +361,7 @@ namespace MUDAdventure
                                                         tempitem.ArmorValue = Convert.ToInt32(item.ItemArmorValue);
                                                     }
                                                     break;
-                                                case "MUDAdventure.Items.Boots":
+                                                case "MUDAdventure.Items.Apparel.Boots":
                                                     tempitem = new Boots();
 
                                                     if (item.ItemArmorValue.HasValue)
@@ -382,7 +385,7 @@ namespace MUDAdventure
                                         case "wielded":
                                             switch (item.ItemType)
                                             {
-                                                case "MUDAdventure.Items.Dagger":
+                                                case "MUDAdventure.Items.Weapons.Dagger":
                                                     tempitem = new Dagger();
 
                                                     if (item.ItemDamage.HasValue)
@@ -396,7 +399,7 @@ namespace MUDAdventure
                                                     }
 
                                                     break;
-                                                case "MUDAdventure.Items.Sword":
+                                                case "MUDAdventure.Items.Weapons.Sword":
                                                     tempitem = new Sword();
 
                                                     if (item.ItemDamage.HasValue)
@@ -410,7 +413,7 @@ namespace MUDAdventure
                                                     }
 
                                                     break;
-                                                case "MUDAdventure.Items.Axe":
+                                                case "MUDAdventure.Items.Weapons.Axe":
                                                     tempitem = new Axe();
 
                                                     if (item.ItemDamage.HasValue)
@@ -532,16 +535,7 @@ namespace MUDAdventure
                                             break;
 
                                     }
-                                }
-
-                                //timer stuff for regen-ing player health based on 
-                                this.healthRegen = new System.Timers.Timer();
-                                this.healthRegen.Elapsed += new ElapsedEventHandler(healthRegen_Elapsed);
-                                this.healthRegen.Interval = Math.Round(60000.0 / (double)this.constitution);
-                                this.healthRegen.Enabled = true;
-                                this.healthRegen.Start();
-
-
+                                }                                
                             }
                             else if (passwordAttempts > 3)
                             {
@@ -682,6 +676,17 @@ namespace MUDAdventure
             this.totalHitpoints = 10;
             this.currentHitpoints = this.totalHitpoints;
 
+            //TODO: add some logic to check if the authoer has created any learnable skills that may affect maxcarryweight
+            this.maxCarryWeight = this.strength * 11.5;
+
+            //timer stuff for regen-ing player health based on 
+            this.healthRegen = new System.Timers.Timer();
+            this.healthRegen.Elapsed += new ElapsedEventHandler(healthRegen_Elapsed);
+
+            //TODO: insert code here to check if the author has created any learnable skills that may affect the regen rate
+            this.healthRegen.Interval = Math.Round(60000.0 / (double)this.constitution);
+            this.healthRegen.Enabled = true;
+            this.healthRegen.Start();
 
             this.Look();
 
@@ -2734,10 +2739,29 @@ namespace MUDAdventure
             if (!this.combatTarget.IsDead)
             {
                 int damage = 0;
+
+                //player is wielding a weapon
                 if (this.inventory.Wielded != null)
                 {
-                    damage = Convert.ToInt32(Math.Sqrt(this.strength + this.inventory.Wielded.Damage) + rand.Next(1, this.level) + 1);
+                    //check to see if there are any weapon skills that govern this weapon and if so, does the player have any proficiency with it
+                    //Debug.Print(this.inventory.Wielded.GetType().ToString());
+                    List<PassiveWeaponSkill> skillCheck = (from skill in this.universalSkillTree.Skills
+                                                          where skill is PassiveWeaponSkill
+                                                          select (PassiveWeaponSkill)skill).ToList();
+                    PassiveWeaponSkill weaponSkill = (from skill in skillCheck
+                                                      where skill.TargetWeapon.GetType() == this.inventory.Wielded.GetType()
+                                                      select skill).FirstOrDefault();
+
+                    int skillFactor = 0;
+                    //there is a skill that governs the use of this weapon
+                    if (weaponSkill != null)
+                    {
+                        skillFactor = weaponSkill.Proficiency ?? 0;
+                    }
+
+                    damage = Convert.ToInt32(Math.Sqrt(this.strength + (this.inventory.Wielded.Damage * (rand.Next(skillFactor, 100)/100))) + rand.Next(1, this.level) + 1);
                 }
+                //player is not wielding a weapon
                 else
                 {
                     damage = Convert.ToInt32(Math.Sqrt(this.strength + 0) + rand.Next(1, this.level) + 1);

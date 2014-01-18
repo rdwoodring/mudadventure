@@ -11,6 +11,8 @@ using System.Xml;
 using System.IO;
 using System.Diagnostics;
 using MUDAdventure.Items;
+using MUDAdventure.Items.Apparel;
+using MUDAdventure.Items.Weapons;
 using MUDAdventure.Skills;
 
 namespace MUDAdventure
@@ -73,11 +75,11 @@ namespace MUDAdventure
             //test skill data
             //TODO: add code for reading skills from a file or DB so that MUD authors can 'dynamically' create diverse skill trees with minimal/no coding
             List<Skill> skillTreeSkills = new List<Skill>();
-            skillTreeSkills.Add(new Skill("Dodge", 1, null, 0, 0, 0, 0));
-            skillTreeSkills.Add(new Skill("Parry", 1, null, 0, 0, 0, 0));
-            skillTreeSkills.Add(new Skill("Hide", 2, null, 0, 0, 0, 0));
-            skillTreeSkills.Add(new Skill("Sneak", 3, null, 0, 0, -2, 0, 5, new Dictionary<string, int>() {{"hide", 50}}));
-            skillTreeSkills.Add(new Skill("Ambush", 4, null, 0, 0, 0, 0, 7, new Dictionary<string, int> { { "sneak", 50 }, { "hide", 75 } }));
+            skillTreeSkills.Add(new Skill("Dodge", 1, null));
+            skillTreeSkills.Add(new Skill("Parry", 1, null));
+            skillTreeSkills.Add(new Skill("Hide", 2, null));
+            skillTreeSkills.Add(new Skill("Sneak", 3, null, 5, new Dictionary<string, int>() {{"hide", 50}}));
+            skillTreeSkills.Add(new Skill("Ambush", 4, null, 7, new Dictionary<string, int> { { "sneak", 50 }, { "hide", 75 } }));
 
             Console.WriteLine("Creating skill tree...");
             this.skillTree = new SkillTree(skillTreeSkills);

@@ -70,17 +70,17 @@
     <Compile Include="Custom Args\LightExpiredEventArgs.cs" />
     <Compile Include="ExperienceChart.cs" />
     <Compile Include="Inventory.cs" />
-    <Compile Include="Items\Apparel.cs" />
-    <Compile Include="Items\Axe.cs" />
-    <Compile Include="Items\Boots.cs" />
-    <Compile Include="Items\Dagger.cs" />
-    <Compile Include="Items\Gloves.cs" />
-    <Compile Include="Items\Headwear.cs" />
+    <Compile Include="Items\Apparel\Apparel.cs" />
+    <Compile Include="Items\Weapons\Axe.cs" />
+    <Compile Include="Items\Apparel\Boots.cs" />
+    <Compile Include="Items\Weapons\Dagger.cs" />
+    <Compile Include="Items\Apparel\Gloves.cs" />
+    <Compile Include="Items\Apparel\Headwear.cs" />
     <Compile Include="Items\Item.cs" />
     <Compile Include="Items\Light.cs" />
-    <Compile Include="Items\Pants.cs" />
-    <Compile Include="Items\Shirt.cs" />
-    <Compile Include="Items\Sword.cs" />
+    <Compile Include="Items\Apparel\Pants.cs" />
+    <Compile Include="Items\Apparel\Shirt.cs" />
+    <Compile Include="Items\Weapons\Sword.cs" />
     <Compile Include="MUDAdventure.designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -106,8 +106,10 @@
     <Compile Include="Room.cs" />
     <Compile Include="Server.cs" />
     <Compile Include="Custom Args\SpawnedEventArgs.cs" />
-    <Compile Include="Items\Weapon.cs" />
-    <Compile Include="Skills\ActiveSkill.cs" />
+    <Compile Include="Items\Weapons\Weapon.cs" />
+    <Compile Include="Skills\PassiveSkills\PassivePrimaryStatSkill.cs" />
+    <Compile Include="Skills\PassiveSkills\PassiveDerivedStatSkill.cs" />
+    <Compile Include="Skills\PassiveSkills\PassiveWeaponSkill.cs" />
     <Compile Include="Skills\Skill.cs" />
     <Compile Include="Skills\SkillTree.cs" />
   </ItemGroup>
@@ -185,6 +187,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Custom Exceptions\" />
+    <Folder Include="Skills\ActiveSkills\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

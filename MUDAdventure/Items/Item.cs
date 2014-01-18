@@ -5,6 +5,8 @@ using System.Text;
 using System.Timers;
 using System.Diagnostics;
 using System.Threading;
+using MUDAdventure.Items.Weapons;
+using MUDAdventure.Items.Apparel;
 
 namespace MUDAdventure.Items
 {

@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading;
 using System.Diagnostics;
 using MUDAdventure.Items;
+using MUDAdventure.Items.Weapons;
+using MUDAdventure.Items.Apparel;
 
 namespace MUDAdventure
 {
