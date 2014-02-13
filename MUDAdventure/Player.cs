@@ -15,7 +15,7 @@ using MUDAdventure.Items;
 using MUDAdventure.Items.Apparel;
 using MUDAdventure.Items.Weapons;
 using MUDAdventure.Skills;
-using MUDAdventure.Skills.PassiveSkills;
+//using MUDAdventure.Skills.PassiveSkills;
 //using MUDAdventure.Skills.ActiveSkills;
 
 namespace MUDAdventure
@@ -2742,28 +2742,9 @@ namespace MUDAdventure
 
                 //player is wielding a weapon
                 if (this.inventory.Wielded != null)
-                {
-                    //check to see if there are any weapon skills that govern this weapon and if so, does the player have any proficiency with it
-                    //Debug.Print(this.inventory.Wielded.GetType().ToString());
-                    List<PassiveWeaponSkill> skillCheck = (from skill in this.universalSkillTree.Skills
-                                                          where skill is PassiveWeaponSkill
-                                                          select (PassiveWeaponSkill)skill).ToList();
-                    PassiveWeaponSkill weaponSkill = (from skill in skillCheck
-                                                      where skill.TargetWeapon.GetType() == this.inventory.Wielded.GetType()
-                                                      select skill).FirstOrDefault();
-
-                    int skillFactor = 0;
-                    //there is a skill that governs the use of this weapon
-                    if (weaponSkill != null)
-                    {
-                        skillFactor = weaponSkill.Proficiency ?? 0;
-                    }
-
-                    damage = Convert.ToInt32(Math.Sqrt(this.strength + (this.inventory.Wielded.Damage * (rand.Next(skillFactor, 100)/100))) + rand.Next(1, this.level) + 1);
-                }
-                //player is not wielding a weapon
-                else
-                {
+                {                    
+                    //TODO: add weapon stats to damage calc
+                    //TODO: add weapon skills to damage calc
                     damage = Convert.ToInt32(Math.Sqrt(this.strength + 0) + rand.Next(1, this.level) + 1);
                 }
                 Debug.Print(damage.ToString());
@@ -2829,9 +2810,5 @@ namespace MUDAdventure
         //    }
         //}
 
-        public string Name
-        {
-            get { return this.name; }
-        }
     }
 }

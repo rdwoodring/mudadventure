@@ -107,11 +107,12 @@
     <Compile Include="Server.cs" />
     <Compile Include="Custom Args\SpawnedEventArgs.cs" />
     <Compile Include="Items\Weapons\Weapon.cs" />
-    <Compile Include="Skills\PassiveSkills\PassivePrimaryStatSkill.cs" />
-    <Compile Include="Skills\PassiveSkills\PassiveDerivedStatSkill.cs" />
-    <Compile Include="Skills\PassiveSkills\PassiveWeaponSkill.cs" />
     <Compile Include="Skills\Skill.cs" />
     <Compile Include="Skills\SkillTree.cs" />
+    <Compile Include="Skills\Symptoms\ExtendedInstantHybridSymptom.cs" />
+    <Compile Include="Skills\Symptoms\ExtendedSymptom.cs" />
+    <Compile Include="Skills\Symptoms\InstantSymptom.cs" />
+    <Compile Include="Skills\Symptoms\Symptom.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="MUDAdventure.mdf">
@@ -187,7 +188,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Custom Exceptions\" />
-    <Folder Include="Skills\ActiveSkills\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
+using MUDAdventure.Skills.Symptoms;
+
 namespace MUDAdventure.Skills
 {
     class Skill
@@ -13,6 +15,7 @@ namespace MUDAdventure.Skills
         protected Dictionary<string, int> preliminaryPrerequisites;
         protected Dictionary<Skill, int> finalPrerequisites;
         protected int levelRequired;
+        protected List<Symptom> symptoms;
 
         #region Constructors
 
