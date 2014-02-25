@@ -1,0 +1,169 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>MUDAdventure</name>
+    </assembly>
+    <members>
+        <member name="M:MUDAdventure.ExperienceChart.#ctor">
+            <summary>
+            Default constructor
+            </summary>       
+        </member>
+        <member name="M:MUDAdventure.ExperienceChart.#ctor(System.Int32)">
+            <summary>
+            Constructor accepting a "seed value" that determines how much exp is needed to gain the next level.  Default is 5000000
+            </summary>
+            <param name="seedValue">A seed value used to determine how much exp is required to gain each level.</param>
+        </member>
+        <member name="T:MUDAdventure.Items.Item">
+            <summary>
+            The Item class is the base class for all the items (including weapons, apparel, lights, containers, etc.).  Depending upon the situation, items may be respawnable, or expirable.  
+            Respawnable items that are picked up will be copied to a player's inventory, disappear from that room in the game, then respawn when the set respawn interval elapses.  
+            Expirable items that are dropped from a player's inventory will stay in that location until the expiration timer elapses, then it will disappear from the game.
+            </summary>    
+        </member>
+        <member name="M:MUDAdventure.Items.Item.#ctor">
+            <summary>
+            Default constructor.        
+            </summary>
+        </member>
+        <member name="M:MUDAdventure.Items.Item.#ctor(MUDAdventure.Items.Item)">
+            <summary>
+            Constructor that takes any instance of a descendant of Item and copies all of its attributes to create a new instance.
+            </summary>
+            <param name="item">Any instance of descendant of Item.</param>
+        </member>
+        <member name="M:MUDAdventure.Items.Item.#ctor(System.String,System.String,System.Double,System.Int32,System.Int32,System.Int32,System.Int32,System.Boolean,System.Collections.Generic.List{System.String})">
+            <summary>
+            Class constructor for creating "respawnable" items.
+            </summary>
+            <param name="n">Name</param>
+            <param name="d">Description</param>
+            <param name="w">Weight</param>
+            <param name="spx">Respawn X coordinate</param>
+            <param name="spy">Respawn Y coordinate</param>
+            <param name="spz">Respawn Z coordinate</param>
+            <param name="sptime">Spawn time (milliseconds) that dictates how long it takes an item to "respawn" after it has been picked up by a player</param>
+            <param name="spawn">Says that the item should be respawnable</param>
+            <param name="rn">A list of "reference names" that players will use to reference this item during gameplay</param>
+        </member>
+        <member name="M:MUDAdventure.Items.Item.#ctor(System.String,System.String,System.Double,System.Int32,System.Int32,System.Int32,System.Boolean,System.Collections.Generic.List{System.String},System.Collections.Generic.List{MUDAdventure.Items.Item}@)">
+            <summary>
+            Class constructor for creating "expirable" items.
+            </summary>
+            <param name="n">Name</param>
+            <param name="d">Description</param>
+            <param name="w">Weight</param>
+            <param name="x">Current X coordinate</param>
+            <param name="y">Current Y coordinate</param>
+            <param name="z">Current Z coordinate</param>
+            <param name="expire">Says that the item should be expirable</param>
+            <param name="rn">A list of "reference names" that players will use to reference this item during gameplay</param>
+            <param name="expirableItemList">The game's list of "expirable" items, passed by reference as objects will automatically remove themselves (expire) when their expiration timer interval has elapsed</param>
+        </member>
+        <member name="M:MUDAdventure.Items.Item.PickedUp">
+            <summary>
+            The Player class calls this method when an instance of an Item is picked up.
+            This method sets the item's spawned status to false, and moves it to a temporary holding room that is inaccessible to players.
+            If the item's "respawnable" attribute it set to true, this method will also enable and start a respawn counter so that the items can respawn when the interval elapses.
+            If the item is not "respawnable" (aka, it's expirable), the item will be moved, but no respawn timer will start.  The item's "expiration" timer that was started in the expirable constructor will elapse in the 'hidden' room and the item will be removed from the expirable item list in the Elapsed Event handler
+            </summary>
+            <seealso cref="!:respawnTimer_Elapsed(object sender, ElapsedEventArgs e)"/>
+            <seealso cref="!:expirationTimer_Elapsed(object sender, ElapsedEventArgs e)"/>
+        </member>
+        <member name="T:MUDAdventure.MUDAdventureDataSet">
+             <summary>
+            Represents a strongly typed in-memory cache of data.
+            </summary>
+        </member>
+        <member name="T:MUDAdventure.Player">
+            <summary>
+            The main class for all "player" objects
+            </summary>
+        </member>
+        <member name="M:MUDAdventure.Skills.Skill.#ctor">
+            <summary>
+            Default constructor
+            </summary>
+        </member>
+        <member name="M:MUDAdventure.Skills.Skill.#ctor(System.String,System.Int32,System.Nullable{System.Int32},System.Collections.Generic.List{MUDAdventure.Skills.Symptoms.Symptom})">
+            <summary>
+            Constructor with arguments that specify the skill's effects.  This constructor does not require a list of preliminary prerequisite skills (i.e. skills that must be learned to a certain percentage before this skill can be learned), so this constructor is useful for instantiating 'base' skills that are available to low level characters.
+            </summary>
+            <param name="name">The skill's name, i.e. parry, dodge, etc.</param>
+            <param name="diff">How difficult the skill is to learn.  1 being easiest, 10 being hardest.</param>        
+        </member>
+        <member name="M:MUDAdventure.Skills.Skill.#ctor(System.String,System.Int32,System.Nullable{System.Int32},System.Collections.Generic.List{MUDAdventure.Skills.Symptoms.Symptom},System.Int32,System.Collections.Generic.Dictionary{System.String,System.Int32})">
+            <summary>
+            Constructor with arguments specify the skill's effects.  This constructor accepts a dictionary of prerequisite skills in a key/pair format.  The key being the skill's name and the value being the required proficiency in that skill in order to learn this skill.
+            </summary>
+            <param name="name">The skill's name, i.e. parry, dodge, etc.</param>
+            <param name="diff">How difficult the skill is to learn.  1 being easiest, 10 being hardest.</param>
+            <param name="prof">How proficient a player is at the skill, as a percentage. 0 being worst, 100 being completely mastered.</param>        
+            <param name="levelreq">The required minimum level needed to begin practicing this skill. 0-100</param>
+            <param name="_preliminaryPrerequisites">A dictionary of "prerequisite" skills that must be learned before learning this skill.  Passed as key/pair format where the key is the skill's name as a string and the value is the required proficiency.  Profiency must be an int between 1-100.</param>
+        </member>
+        <member name="M:MUDAdventure.Skills.SkillTree.#ctor">
+            <summary>
+            Default constructor
+            </summary>
+        </member>
+        <member name="M:MUDAdventure.Skills.SkillTree.#ctor(System.Collections.Generic.List{MUDAdventure.Skills.Skill})">
+            <summary>
+            Constructor with arguments
+            </summary>
+            <param name="_skills">A list of all skills</param>
+        </member>
+        <member name="T:MUDAdventure.Skills.Symptoms.ExtendedInstantHybirdSymptoms.ExtendedInstantHybridSymptom">
+            <summary>
+            Designed for a symptom with an extended duration that has reptitive instant symptoms at set intervals, i.e. poison (-10 hp every 2 seconds, etc.)
+            </summary>
+        </member>
+        <member name="M:MUDAdventure.Skills.Symptoms.Symptom.#ctor">
+            <summary>
+            Default constructor
+            </summary>
+        </member>
+        <member name="M:MUDAdventure.Skills.Symptoms.ExtendedInstantHybirdSymptoms.ExtendedInstantHybridSymptom.#ctor">
+            <summary>
+            Default constructoer
+            </summary>
+        </member>
+        <member name="M:MUDAdventure.Skills.Symptoms.ExtendedInstantHybirdSymptoms.ExtendedInstantHybridSymptom.#ctor(MUDAdventure.Character,System.String,System.Timers.Timer,System.Timers.Timer,MUDAdventure.Skills.Symptoms.InstantSymptoms.InstantSymptom)">
+            <summary>
+            Constructor with arguments
+            </summary>
+            <param name="_targetCharacter">The character who is affected by this symptom</param>
+            <param name="_totalDuration">The total duration that this symptom lasts</param>
+            <param name="_symptomInterval">The interval at which the instant symptom kicks in</param>
+            <param name="_instantSymptom">The instant symptom affecting the target character</param>
+        </member>
+        <member name="T:MUDAdventure.Skills.Symptoms.ExtendedSymptoms.ExtendedSymptom">
+            <summary>
+            For skills/spells/effects that have a lasting static effect, i.e. confusion, fatigue, reduced health/move/mana regen etc.
+            </summary>
+        </member>
+        <member name="T:MUDAdventure.Skills.Symptoms.InstantSymptoms.HPDamage">
+            <summary>
+            A symptom that deals instant, direct damage to a Player or NPC's current hitpoints.
+            </summary>
+        </member>
+        <member name="T:MUDAdventure.Skills.Symptoms.InstantSymptoms.InstantSymptom">
+            <summary>
+            For skills/spells/effects that have an instant effect, i.e. hp damage or mp damage
+            </summary>
+        </member>
+        <member name="M:MUDAdventure.Skills.Symptoms.InstantSymptoms.HPDamage.#ctor">
+            <summary>
+            Default constructor with no arguments
+            </summary>
+        </member>
+        <member name="M:MUDAdventure.Skills.Symptoms.InstantSymptoms.HPDamage.#ctor(MUDAdventure.Character,System.String)">
+            <summary>
+            Constructor with arguments
+            </summary>
+            <param name="_targetCharacter">The character upon which the symptom acts.  For this symptom, the character whose HP will be reduced.</param>
+            <param name="_associatedWith">Which skill, disease, spell, effect, etc. the symptom is associated with.  This is used when displaying effects in the player status screen.</param>
+        </member>
+    </members>
+</doc>

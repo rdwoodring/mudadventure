@@ -4,7 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Timers;
 
-namespace MUDAdventure.Skills.Symptoms
+using MUDAdventure.Skills.Symptoms.InstantSymptoms;
+
+namespace MUDAdventure.Skills.Symptoms.ExtendedInstantHybirdSymptoms
 {
     /// <summary>
     /// Designed for a symptom with an extended duration that has reptitive instant symptoms at set intervals, i.e. poison (-10 hp every 2 seconds, etc.)
@@ -28,7 +30,7 @@ namespace MUDAdventure.Skills.Symptoms
         /// <param name="_totalDuration">The total duration that this symptom lasts</param>
         /// <param name="_symptomInterval">The interval at which the instant symptom kicks in</param>
         /// <param name="_instantSymptom">The instant symptom affecting the target character</param>
-        public ExtendedInstantHybridSymptom(Character _targetCharacter, Timer _totalDuration, Timer _symptomInterval, InstantSymptom _instantSymptom) :base(_targetCharacter)
+        public ExtendedInstantHybridSymptom(Character _targetCharacter, string _associatedWith, Timer _totalDuration, Timer _symptomInterval, InstantSymptom _instantSymptom) :base(_targetCharacter, _associatedWith)
         {
             this.totalDuration = _totalDuration;
             this.symptomInterval = _symptomInterval;

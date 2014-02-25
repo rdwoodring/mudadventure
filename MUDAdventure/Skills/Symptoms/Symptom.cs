@@ -7,7 +7,9 @@ namespace MUDAdventure.Skills.Symptoms
 {
     abstract class Symptom
     {
+
         protected Character targetCharacter;
+        protected string associatedWith;
 
         #region Constructors
 
@@ -16,9 +18,10 @@ namespace MUDAdventure.Skills.Symptoms
         ///</summary>
         public Symptom() { }
 
-        public Symptom(Character _targetCharacter)
+        public Symptom(Character _targetCharacter, string _associatedWith)
         {
             this.targetCharacter = _targetCharacter;
+            this.associatedWith = _associatedWith;
         }
 
         #endregion
@@ -31,6 +34,12 @@ namespace MUDAdventure.Skills.Symptoms
         {
             get { return this.targetCharacter; }
             set { this.targetCharacter = value; }
+        }
+
+        public string AssociatedWith
+        {
+            get { return this.associatedWith; }
+            set { this.associatedWith = value; }
         }
 
         #endregion

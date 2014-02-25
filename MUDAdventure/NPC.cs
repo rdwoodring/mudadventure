@@ -126,12 +126,6 @@ namespace MUDAdventure
             set { this.refNames = value; }
         }
 
-        public int CurrentHitpoints
-        {
-            get { return this.currentHitpoints; }
-            set { this.currentHitpoints = value; }
-        }
-
         #endregion
 
         private void Move(string dir)

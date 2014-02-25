@@ -38,6 +38,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <DocumentationFile>bin\Debug\MUDAdventure.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -109,9 +110,10 @@
     <Compile Include="Items\Weapons\Weapon.cs" />
     <Compile Include="Skills\Skill.cs" />
     <Compile Include="Skills\SkillTree.cs" />
-    <Compile Include="Skills\Symptoms\ExtendedInstantHybridSymptom.cs" />
-    <Compile Include="Skills\Symptoms\ExtendedSymptom.cs" />
-    <Compile Include="Skills\Symptoms\InstantSymptom.cs" />
+    <Compile Include="Skills\Symptoms\ExtendedInstantHybridSymptoms\ExtendedInstantHybridSymptom.cs" />
+    <Compile Include="Skills\Symptoms\ExtendedSymptoms\ExtendedSymptom.cs" />
+    <Compile Include="Skills\Symptoms\InstantSymptoms\HPDamage.cs" />
+    <Compile Include="Skills\Symptoms\InstantSymptoms\InstantSymptom.cs" />
     <Compile Include="Skills\Symptoms\Symptom.cs" />
   </ItemGroup>
   <ItemGroup>

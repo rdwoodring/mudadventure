@@ -75,11 +75,12 @@ namespace MUDAdventure
             //test skill data
             //TODO: add code for reading skills from a file or DB so that MUD authors can 'dynamically' create diverse skill trees with minimal/no coding
             List<Skill> skillTreeSkills = new List<Skill>();
-            skillTreeSkills.Add(new Skill("Dodge", 1, null));
-            skillTreeSkills.Add(new Skill("Parry", 1, null));
-            skillTreeSkills.Add(new Skill("Hide", 2, null));
-            skillTreeSkills.Add(new Skill("Sneak", 3, null, 5, new Dictionary<string, int>() {{"hide", 50}}));
-            skillTreeSkills.Add(new Skill("Ambush", 4, null, 7, new Dictionary<string, int> { { "sneak", 50 }, { "hide", 75 } }));
+            //skillTreeSkills.Add()
+            //skillTreeSkills.Add(new Skill("Dodge", 1, null));
+            //skillTreeSkills.Add(new Skill("Parry", 1, null));
+            //skillTreeSkills.Add(new Skill("Hide", 2, null));
+            //skillTreeSkills.Add(new Skill("Sneak", 3, null, 5, new Dictionary<string, int>() {{"hide", 50}}));
+            //skillTreeSkills.Add(new Skill("Ambush", 4, null, 7, new Dictionary<string, int> { { "sneak", 50 }, { "hide", 75 } }));
 
             Console.WriteLine("Creating skill tree...");
             this.skillTree = new SkillTree(skillTreeSkills);
@@ -188,7 +189,9 @@ namespace MUDAdventure
                         this.players.RemoveAt(i);
 
                         //and stop his thread
-                        //TODO: this is the "ungraceful" way.  figure out how to do this better
+                        //TODO: this is the "ungraceful" way.  figure out how to do this better.
+                        //NOTE: consider replacing the whole threaded structure with a single threaded model where the Player instance reads from the input stream asynchronously
+                        //so the main thread doesn't block while waiting for user input
                         this.playerThreadList[i].Abort();
 
                         //then remove the thread from the list

@@ -127,6 +127,28 @@ namespace MUDAdventure
             get { return this.level; }
         }
 
+        public int CurrentHitpoints
+        {
+            get { return this.currentHitpoints; }
+            set
+            {
+                Monitor.TryEnter(this.hplock, 3000);
+                try
+                {
+                    this.currentHitpoints = value;
+                }
+                catch (Exception ex)
+                {
+                    Debug.Print("Error: " + ex.Message);
+                    Debug.Print("Trace: " + ex.StackTrace);
+                }
+                finally
+                {
+                    Monitor.Exit(this.hplock);
+                }
+            }
+        }
+
         #endregion
 
         public virtual void ReceiveAttack(Character sender, int potentialdamage, string attackerName)

@@ -29,11 +29,13 @@ namespace MUDAdventure.Skills
         /// </summary>
         /// <param name="name">The skill's name, i.e. parry, dodge, etc.</param>
         /// <param name="diff">How difficult the skill is to learn.  1 being easiest, 10 being hardest.</param>        
-        public Skill(string name, int diff, int? prof)
+        public Skill(string name, int diff, int? prof, List<Symptom> _symptoms)
         {
             this.skillName = name;
             this.difficulty = diff;
             this.proficiency = prof;
+            
+            this.symptoms = new List<Symptom>(_symptoms);
 
             this.levelRequired = 0;
             this.preliminaryPrerequisites = new Dictionary<string, int>();
@@ -49,11 +51,13 @@ namespace MUDAdventure.Skills
         /// <param name="prof">How proficient a player is at the skill, as a percentage. 0 being worst, 100 being completely mastered.</param>        
         /// <param name="levelreq">The required minimum level needed to begin practicing this skill. 0-100</param>
         /// <param name="_preliminaryPrerequisites">A dictionary of "prerequisite" skills that must be learned before learning this skill.  Passed as key/pair format where the key is the skill's name as a string and the value is the required proficiency.  Profiency must be an int between 1-100.</param>
-        public Skill(string name, int diff, int? prof, int levelreq, Dictionary<string, int> _preliminaryPrerequisites)
+        public Skill(string name, int diff, int? prof, List<Symptom> _symptoms, int levelreq, Dictionary<string, int> _preliminaryPrerequisites)
         {
             this.skillName = name;
             this.difficulty = diff;
             this.proficiency = prof;
+
+            this.symptoms = new List<Symptom>(_symptoms);
 
             this.levelRequired = levelreq;
 
